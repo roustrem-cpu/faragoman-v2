@@ -60,3 +60,66 @@ article 404'd. Task A adds the missing route → controller → service → view
 ### Next (Task B)
 Category, Author, and Search pages on the new router (reuse `ArticleRepository`;
 add finder methods there rather than in controllers).
+
+
+---
+
+## Task B — Category, Author & Search pages
+_Date: 2026-06-20 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Add the three content-discovery listings on the new router and make them
+reachable from the existing UI.
+
+### Files Modified
+- **EDIT** `app/Repositories/ArticleRepository.php` — added read-only finders:
+  `byCategory`/`countByCategory`, `byAuthor`/`countByAuthor`,
+  `search`/`countSearch` (LIKE with explicit `ESCAPE '!'`), plus
+  `findCategoryName` / `findAuthorName`.
+- **EDIT** `app/Services/ArticleService.php` — `categoryFeed`/`categoryTotalPages`/
+  `categoryName`, `authorFeed`/`authorTotalPages`/`authorName`,
+  `searchResults`/`searchTotalPages` (+ `offset()`/`pageCount()` helpers).
+- **NEW** `app/Controllers/CategoryController.php`, `AuthorController.php`,
+  `SearchController.php` — thin controllers; graceful 404 for unknown
+  category/author; empty-query search renders a prompt state.
+- **NEW** `resources/views/category.php`, `author.php`, `search.php`.
+- **NEW** `resources/views/partials/feed-grid.php` (shared article grid) and
+  `partials/pagination.php` (shared pager).
+- **EDIT** `routes/web.php` — `/search`, `/category/{id}`, `/author/{id}`
+  registered BEFORE the `/{title}` catch-all.
+- **EDIT** `app/Core/Application.php` — DI bindings for the 3 controllers.
+- **EDIT** `resources/views/home.php` — category badge now links to
+  `/category/{id}` and author name to `/author/{id}`.
+- **EDIT** `resources/views/partials/header.php` — added a «جستجو» nav link.
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — appended
+  `.listing*` and `.search-form*` styles (plain CSS, both source and bundle).
+
+### Architectural Decisions
+- **Finders live in the Repository, services orchestrate** (Repository Pattern
+  preserved); controllers stay thin.
+- **Scalar-only caching.** Only integer COUNTs are cached. Article object lists
+  are fetched fresh because the shared `Cache` unserializes with
+  `allowed_classes => false`, which would corrupt cached model instances.
+  Mirrors the existing `totalPages()`. ⚠️ NOTE for future agents: the existing
+  `homeFeed()` *does* cache Article objects and is therefore subject to that
+  same corruption on a cache hit — left untouched (out of scope), flagged here.
+- **Search safety.** User wildcards (`%`, `_`) are neutralised via paired
+  `ESCAPE '!'`; queries are fully parameterised. Searches title + excerpt + body
+  of published articles only.
+- **Reachability.** Home cards + header now link into the new pages so nothing
+  is orphaned. The catch-all `/{title}` still resolves single-segment article
+  URLs because the new routes are registered before it.
+- **DB untouched.** Read-only feature; no schema/data changes; Store/Chat
+  LegacyBridge untouched. Local compiled Tailwind only; zero external requests.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all new/edited PHP files (repository, service,
+  3 controllers, Application, routes, 5 views/partials, home, header).
+- Render smoke tests through the real `View` + layout: category (list +
+  pagination + category/author links), category empty state, author (active
+  page), search (encoded `q` + `&amp;` pager separator, results summary),
+  empty-query search prompt, and the edited home view — all render with no
+  warnings/fatals.
+
+### Next (Task C)
+Admin Panel — Foundation, layout, and routing.

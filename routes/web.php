@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 use App\Controllers\ArticleController;
 use App\Controllers\AuthController;
+use App\Controllers\AuthorController;
+use App\Controllers\CategoryController;
 use App\Controllers\FeedController;
+use App\Controllers\SearchController;
 use App\Controllers\HomeController;
 use App\Controllers\StoryController;
 use App\Core\Router;
@@ -42,6 +45,12 @@ return static function (Router $router): void {
     $router->get('/feed/rss', [FeedController::class, 'rss']);
     $router->get('/feed.json', [FeedController::class, 'json']);
     $router->get('/feed.txt', [FeedController::class, 'text']);
+
+    // Content discovery (Phase 3): search, category and author listings.
+    // Registered BEFORE the /{title} catch-all so they always win.
+    $router->get('/search', [SearchController::class, 'index']);
+    $router->get('/category/{id}', [CategoryController::class, 'show']);
+    $router->get('/author/{id}', [AuthorController::class, 'show']);
 
     // Article detail page (resolved by title). MUST stay LAST: its single-segment
     // pattern `/{title}` is a catch-all, so every specific route above wins first.

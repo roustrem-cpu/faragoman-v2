@@ -31,7 +31,7 @@ original `project` repository into the modernized `faragoman-v2` architecture.
 - [x] Production ZIP refreshed
 
 ## Phase 3 — Remaining work (next iterations)
-- [ ] Article detail page + category/author/search pages on the new router
+- [x] Article detail page + category/author/search pages on the new router
 - [ ] Admin panel (dashboard, articles, users, comments, stories management UI)
 - [ ] Full dynamic RBAC management UI (assign/revoke permissions per admin)
 - [ ] Profile / wiki pages ported to the new architecture

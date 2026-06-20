@@ -357,3 +357,18 @@
 .article__empty { color: var(--muted); text-align: center; margin: 0; }
 @media (min-width: 640px) { .article__title { font-size: 2.4rem; } }
 @media (prefers-reduced-motion: reduce) { .article__back { transition: none; } }
+
+
+/* ==========================================================================
+   Listings (category / author / search) + search form. Plain CSS, local,
+   appended so it ships in the compiled bundle and survives `npm run build`.
+   ========================================================================== */
+.listing { display: flex; flex-direction: column; gap: 1.5rem; }
+.listing__head { display: flex; flex-direction: column; gap: .5rem; }
+.listing__eyebrow { font-size: .8rem; letter-spacing: .04em; color: #67e8f9; }
+.listing__title { font-size: 1.8rem; font-weight: 800; letter-spacing: -.01em; margin: 0; }
+.listing__summary { color: var(--muted); font-size: .92rem; margin: -.5rem 0 0; }
+.search-form { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .5rem; }
+.search-form__input { flex: 1 1 16rem; }
+.search-form .btn { flex: 0 0 auto; }
+@media (min-width: 640px) { .listing__title { font-size: 2.2rem; } }

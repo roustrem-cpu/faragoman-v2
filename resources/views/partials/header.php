@@ -8,6 +8,7 @@
 
         <nav class="nav" aria-label="ناوبری اصلی">
             <a href="/" class="nav-link is-active">خانه</a>
+            <a href="/search" class="nav-link">جستجو</a>
             <a href="/wiki" class="nav-link">ویکی</a>
             <a href="/store" class="nav-link">فروشگاه</a>
             <a href="/chat" class="nav-link">گفتگو</a>
