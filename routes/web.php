@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\AdminArticleController;
 use App\Controllers\AdminController;
+use App\Controllers\AdminRoleController;
 use App\Controllers\ArticleController;
 use App\Controllers\AuthController;
 use App\Controllers\AuthorController;
@@ -62,6 +63,23 @@ return static function (Router $router): void {
     $router->post('/admin/articles/{id}/delete', [AdminArticleController::class, 'destroy'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
     $router->post('/admin/articles/{id}/publish', [AdminArticleController::class, 'publish'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
     $router->post('/admin/articles/{id}/unpublish', [AdminArticleController::class, 'unpublish'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
+
+    // Admin: dynamic RBAC management (Task E). Roles, role permissions, role
+    // assignment and per-user overrides. Gated by auth + the `roles.manage`
+    // permission via the `gate.roles` middleware; writes additionally pass
+    // through CSRF. Static segments are registered before the `{id}` patterns.
+    $router->get('/admin/roles', [AdminRoleController::class, 'index'], [AuthMiddleware::class, 'gate.roles']);
+    $router->get('/admin/roles/create', [AdminRoleController::class, 'create'], [AuthMiddleware::class, 'gate.roles']);
+    $router->post('/admin/roles', [AdminRoleController::class, 'store'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
+    $router->get('/admin/roles/users', [AdminRoleController::class, 'users'], [AuthMiddleware::class, 'gate.roles']);
+    $router->post('/admin/roles/users/{id}/role', [AdminRoleController::class, 'assignRole'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
+    $router->get('/admin/roles/users/{id}/overrides', [AdminRoleController::class, 'overrides'], [AuthMiddleware::class, 'gate.roles']);
+    $router->post('/admin/roles/users/{id}/overrides', [AdminRoleController::class, 'saveOverrides'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
+    $router->get('/admin/roles/{id}/edit', [AdminRoleController::class, 'edit'], [AuthMiddleware::class, 'gate.roles']);
+    $router->get('/admin/roles/{id}/permissions', [AdminRoleController::class, 'permissions'], [AuthMiddleware::class, 'gate.roles']);
+    $router->post('/admin/roles/{id}/permissions', [AdminRoleController::class, 'savePermissions'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
+    $router->post('/admin/roles/{id}', [AdminRoleController::class, 'update'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
+    $router->post('/admin/roles/{id}/delete', [AdminRoleController::class, 'destroy'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
 
     // Content discovery (Phase 3): search, category and author listings.
     // Registered BEFORE the /{title} catch-all so they always win.

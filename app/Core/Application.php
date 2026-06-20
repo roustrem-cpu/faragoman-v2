@@ -54,11 +54,13 @@ final class Application
         $c->singleton(UserRepository::class, static fn (Container $c): UserRepository => new UserRepository($c->get(Database::class)));
         $c->singleton(ArticleRepository::class, static fn (Container $c): ArticleRepository => new ArticleRepository($c->get(Database::class)));
         $c->singleton(\App\Repositories\StoryRepository::class, static fn (Container $c): \App\Repositories\StoryRepository => new \App\Repositories\StoryRepository($c->get(Database::class)));
+        $c->singleton(\App\Repositories\RbacRepository::class, static fn (Container $c): \App\Repositories\RbacRepository => new \App\Repositories\RbacRepository($c->get(Database::class)));
 
         // Services
         $c->singleton(AuthService::class, static fn (Container $c): AuthService => new AuthService($c->get(UserRepository::class)));
         $c->singleton(ArticleService::class, static fn (Container $c): ArticleService => new ArticleService($c->get(ArticleRepository::class), $c->get(Cache::class)));
         $c->singleton(\App\Services\StoryService::class, static fn (Container $c): \App\Services\StoryService => new \App\Services\StoryService($c->get(\App\Repositories\StoryRepository::class), $c->get(Cache::class)));
+        $c->singleton(\App\Services\RbacService::class, static fn (Container $c): \App\Services\RbacService => new \App\Services\RbacService($c->get(\App\Repositories\RbacRepository::class)));
 
         // Middleware
         $c->singleton(AuthMiddleware::class, static fn (Container $c): AuthMiddleware => new AuthMiddleware($c->get(AuthService::class)));
@@ -69,6 +71,12 @@ final class Application
         // middleware by container id, so this exposes a ready-to-use instance
         // of RoleMiddleware pre-bound to the `admin.access` permission.
         $c->singleton('gate.admin', static fn (Container $c): RoleMiddleware => $c->get(RoleMiddleware::class)->require('admin.access'));
+
+        // Dedicated gate for the RBAC management section (Task E). More
+        // sensitive than the rest of the panel, so it requires `roles.manage`
+        // rather than the broad `admin.access`. By default only the Super
+        // Admin (who bypasses all checks) holds it.
+        $c->singleton('gate.roles', static fn (Container $c): RoleMiddleware => $c->get(RoleMiddleware::class)->require('roles.manage'));
 
         // Router
         $c->singleton(Router::class, static fn (Container $c): Router => new Router($c));
@@ -89,6 +97,7 @@ final class Application
             \App\Controllers\ArticleController::class => static fn (Container $c) => new \App\Controllers\ArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AdminController::class => static fn (Container $c) => new \App\Controllers\AdminController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AdminArticleController::class => static fn (Container $c) => new \App\Controllers\AdminArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
+            \App\Controllers\AdminRoleController::class => static fn (Container $c) => new \App\Controllers\AdminRoleController($c->get(View::class), $c->get(\App\Services\RbacService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\CategoryController::class => static fn (Container $c) => new \App\Controllers\CategoryController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AuthorController::class => static fn (Container $c) => new \App\Controllers\AuthorController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\SearchController::class => static fn (Container $c) => new \App\Controllers\SearchController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),

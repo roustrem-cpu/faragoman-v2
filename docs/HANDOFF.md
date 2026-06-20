@@ -269,3 +269,102 @@ the existing production `articles` table with zero schema changes.
 
 ### Next (Task E)
 Dynamic RBAC Management UI (assign/revoke roles & permissions).
+
+---
+
+## Task E — Admin Panel: Dynamic RBAC Management UI
+_Date: 2026-06-20 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Give the Super Administrator a back-office UI to manage Role-Based Access
+Control dynamically: create/edit/delete roles, grant permissions to roles,
+assign roles to users, and apply per-user permission overrides — all driving
+the additive RBAC tables and the existing `App\Support\Rbac` engine, with zero
+schema changes to production.
+
+### Files Modified
+- **NEW** `app/Models/Role.php`, `app/Models/Permission.php` — read-only models
+  over the additive `roles` / `permissions` tables.
+- **NEW** `app/Repositories/RbacRepository.php` — all RBAC SQL: roles CRUD,
+  `permissions`, `role_permissions` sync, `user_permissions` sync, user listing
+  and `setUserRole()`. Includes `tablesReady()` (graceful degradation when
+  schema.sql has not been imported).
+- **NEW** `app/Services/RbacService.php` — orchestration: slug normalisation +
+  validation, core-role protection, permission grouping, role assignment
+  whitelist. No caching (see Decisions).
+- **NEW** `app/Controllers/AdminRoleController.php` — index / role CRUD /
+  permission editor / users list / role assignment / per-user overrides. Flash
+  via `?m=` redirect param; 404 for missing ids; self-lockout guard.
+- **NEW** views under `resources/views/admin/roles/`: `index.php` (roles table +
+  stats + "schema not ready" notice), `form.php` (create/edit role),
+  `permissions.php` (per-role permission matrix grouped by category),
+  `users.php` (assign roles to users + pagination), `overrides.php` (per-user
+  allow/deny/inherit segmented controls).
+- **EDIT** `app/Core/Application.php` — DI bindings for `RbacRepository`,
+  `RbacService`, `AdminRoleController`, and a new `gate.roles` middleware
+  (`RoleMiddleware->require('roles.manage')`).
+- **EDIT** `routes/web.php` — 12 routes under `/admin/roles*`
+  (reads: `[AuthMiddleware, gate.roles]`; writes add `CsrfMiddleware`). Static
+  segments registered before `{id}` patterns; whole block stays before the
+  `/{title}` catch-all.
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — appended
+  the `.rbac-*`, `.perm-*`, `.override-*`, `.seg*`, `.role-rank` component
+  styles (plain CSS, both source and compiled bundle).
+
+### Architectural Decisions
+- **Dedicated `gate.roles` (permission `roles.manage`), not `gate.admin`.**
+  Role management is the most sensitive surface, so it requires `roles.manage`
+  rather than the broad `admin.access`. By the seeded grants only the Super
+  Admin (who bypasses all checks) holds it — section_admin is intentionally NOT
+  granted `roles.manage`, matching the `Rbac` fallback matrix that denies
+  `roles.*` to everyone below super_admin.
+- **Role assignment writes the role *slug* to the existing `users.role`
+  string column — no schema change.** Assignable values are whitelisted to
+  slugs that exist in the `roles` table, so the production column can never
+  receive an out-of-range value. Existing rows are never auto-rewritten; legacy
+  `admin` keeps working via `Rbac::LEGACY_MAP` (→ super_admin) and the UI shows
+  both the normalised role and the raw stored value for transparency.
+- **Core roles are protected.** The five seeded slugs (super_admin,
+  section_admin, editor, author, user) cannot be deleted and their slug is
+  locked on edit (name/rank stay editable) because `Rbac` matches on them.
+  Custom roles are fully editable/deletable.
+- **Super Admin permission rows are never written** — it implicitly holds every
+  permission, so its permission editor shows an informational note instead.
+- **Self-lockout guard.** An admin cannot change their own account's role
+  (prevents accidentally revoking their own access).
+- **Graceful degradation.** `RbacRepository::tablesReady()` detects whether the
+  additive tables were imported; if not, the index renders a guided
+  "import database/schema.sql" notice and mutating routes redirect back — the
+  app never fatals (mirrors the `Rbac` fallback philosophy).
+- **No caching of RBAC data.** `Rbac::can()` reads the tables directly so
+  changes take effect on the next request; we also avoid the
+  `allowed_classes => false` model-corruption hazard flagged in Task B.
+- **Additive DB only.** Writes touch only `roles`, `permissions`,
+  `role_permissions`, `user_permissions` and the pre-existing `users.role`
+  column. Store/Chat LegacyBridge untouched; local compiled Tailwind only, zero
+  external requests; RTL/glass UI consistent with the Task C/D admin shell.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all new/edited PHP files (2 models,
+  repository, service, controller, Application, routes, 5 views).
+- Router integration test (stubbed container, pass-through middleware): all 12
+  `/admin/roles*` routes resolve to the correct controller/method with correct
+  GET/POST + id params; regression checks confirm `/admin`, `/admin/articles`,
+  the `/{title}` catch-all and `/` still resolve correctly (static role
+  segments correctly win over the `{id}` patterns).
+- Render smoke tests through the real `View` + `layouts/admin`: roles index
+  (populated + "schema not ready" notice), role form (core role with locked
+  slug + new role with validation error/old input), permission matrix
+  (editable + super-admin note), users list (self-row guard, raw-vs-normalised
+  role, role select, pagination), per-user overrides (allow/deny/inherit
+  segmented controls) — all render with no warnings/fatals.
+- Reflection coverage: every routed controller method exists; `RbacService` and
+  `RbacRepository` expose all methods used by the controller.
+- Note: no MySQL in the sandbox, so write queries were validated structurally
+  (placeholder/bind arity + additive-table parity) rather than executed; the
+  `tablesReady()` fallback path was exercised via the render test.
+
+### Next (Task F)
+Admin Panel — User Management UI (list/search users, edit profile fields, ban/
+unban) under `/admin/users`, reusing `gate.admin` and the `users.manage`
+permission.

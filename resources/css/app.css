@@ -465,3 +465,49 @@
 textarea.field__input { font-family: inherit; }
 select.field__input { appearance: none; cursor: pointer; }
 @media (min-width: 720px) { .admin-form__row { grid-template-columns: 1fr 1fr; } }
+
+
+/* ==========================================================================
+   Admin — Dynamic RBAC management (Task E): roles list, permission matrix,
+   role assignment and per-user override controls.
+   Plain CSS, local; appended to source and compiled bundle.
+   ========================================================================== */
+.rbac-notice { display: flex; flex-direction: column; gap: .6rem; }
+.rbac-notice__title { font-size: 1.05rem; font-weight: 700; margin: 0; }
+.rbac-notice__body { color: var(--muted); font-size: .9rem; line-height: 2; margin: 0; }
+.rbac-notice code, .rbac-slug, .perm-check__slug, .rbac-username { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; unicode-bidi: isolate; }
+.rbac-slug { font-size: .8rem; color: #7c9cff; }
+.rbac-username { color: var(--muted); font-size: .78rem; margin-inline-start: .4rem; }
+.rbac-rawrole { color: var(--muted); font-size: .75rem; }
+.role-rank { display: inline-grid; place-items: center; min-width: 2.2rem; padding: .15rem .5rem; border-radius: 999px; background: rgba(124,156,255,.12); font-weight: 700; font-size: .8rem; }
+.admin-formwrap--wide { max-width: 60rem; }
+
+.rbac-assign { display: flex; align-items: center; gap: .5rem; margin: 0; }
+.rbac-select { min-width: 9rem; padding: .45rem .7rem; font-size: .85rem; }
+
+.perm-group { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem 1.1rem; margin: 0; background: rgba(8,12,28,.35); }
+.perm-group__title { padding: 0 .5rem; font-weight: 700; font-size: .92rem; color: #cdd7ff; }
+.perm-grid { display: grid; gap: .7rem; grid-template-columns: 1fr; }
+.perm-check { display: flex; align-items: flex-start; gap: .6rem; padding: .55rem .7rem; border-radius: 12px; border: 1px solid transparent; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.perm-check:hover { background: rgba(255,255,255,.04); border-color: var(--border); }
+.perm-check input { margin-top: .25rem; width: 1.05rem; height: 1.05rem; accent-color: #5b7cfa; flex: 0 0 auto; cursor: pointer; }
+.perm-check__text { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.perm-check__name { font-size: .9rem; }
+.perm-check__slug { font-size: .72rem; color: var(--muted); }
+
+.override-list { display: flex; flex-direction: column; gap: .5rem; }
+.override-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: .55rem .7rem; border-radius: 12px; border: 1px solid transparent; }
+.override-row:hover { background: rgba(255,255,255,.03); border-color: var(--border); }
+
+.seg { display: inline-flex; background: rgba(8,12,28,.55); border: 1px solid var(--border); border-radius: 999px; padding: 3px; flex: 0 0 auto; }
+.seg__radio { position: absolute; opacity: 0; pointer-events: none; }
+.seg__label { padding: .35rem .85rem; border-radius: 999px; font-size: .78rem; color: var(--muted); cursor: pointer; transition: background .15s ease, color .15s ease; white-space: nowrap; }
+.seg__radio:focus-visible + .seg__label { box-shadow: 0 0 0 3px rgba(91,124,250,.35); }
+.seg__radio--inherit:checked + .seg__label { background: rgba(255,255,255,.12); color: var(--text); }
+.seg__radio--allow:checked + .seg__label { background-image: linear-gradient(145deg, #22c55e, #15803d); color: #fff; }
+.seg__radio--deny:checked + .seg__label { background-image: linear-gradient(145deg, #f43f5e, #be123c); color: #fff; }
+
+.rbac-hint { color: var(--muted); font-size: .82rem; line-height: 2; padding: .9rem 1.1rem; }
+
+@media (min-width: 720px) { .perm-grid { grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) { .perm-check, .seg__label { transition: none; } }
