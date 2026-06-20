@@ -11,6 +11,7 @@
     <header class="listing__head">
         <span class="listing__eyebrow">نویسنده</span>
         <h1 class="listing__title"><?= e($authorName ?? 'نویسنده') ?></h1>
+        <a class="listing__profile-link" href="/profile/<?= (int) $authorId ?>">مشاهده پروفایل کامل</a>
     </header>
 
     <?php $emptyText = 'این نویسنده هنوز مقاله‌ای منتشر نکرده است.'; ?>

@@ -642,3 +642,104 @@ schema change.
 Profile and Wiki pages (public `/profile` / author profile + the wiki/knowledge
 pages), reusing the existing `wiki_functions` data shape from the legacy repo
 where applicable.
+
+
+---
+
+## Task I — Profile & Wiki pages
+_Date: 2026-06-21 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Add the two remaining public surfaces the header already linked to but had no
+routes for: a user **profile** page (`/profile` for the signed-in user,
+`/profile/{id}` for anyone) and the **knowledge-base / glossary** (`/wiki` index
++ `/wiki/{slug}` single term), both reading existing data with zero schema change.
+
+### Files Modified
+- **NEW** `app/Models/Wiki.php` — read-only model over the legacy `wiki_terms`
+  table (id, term, slug, brief_desc, full_content, display_type, updated_at) with
+  an `isFullPage()` helper.
+- **NEW** `app/Repositories/WikiRepository.php` — `publishedList()` (alphabetical
+  glossary, published only) and `findBySlug()` (single published term).
+- **NEW** `app/Services/WikiService.php` — cached `list()` + `find()`; both
+  defensive (return []/null if the `wiki_terms` table is absent).
+- **NEW** `app/Controllers/WikiController.php` — index + show($slug) with a
+  graceful 404.
+- **NEW** `app/Controllers/ProfileController.php` — `me()` (own profile; guests
+  redirected to /login) and `show($id)` (public profile, 404 if missing).
+  Resolves profile fields via UserService and published articles via the
+  existing ArticleService author feed. The private email column is never shown.
+- **NEW** `resources/views/profile.php` — profile header (avatar/initial, name,
+  @username, title, join date, archive link) + optional bio + the shared
+  `feed-grid`/`pagination` partials for the author's articles.
+- **NEW** `resources/views/wiki/index.php` — glossary grid (full-page terms link
+  to their page; tooltip-only terms render inline).
+- **NEW** `resources/views/wiki/show.php` — single term page (term, brief,
+  author-managed full HTML body, updated date) with a back link.
+- **EDIT** `resources/views/author.php` — added a "مشاهده پروفایل کامل" link to
+  `/profile/{id}` so public profiles are reachable from the author archive.
+- **EDIT** `app/Core/Application.php` — DI bindings for `WikiRepository`,
+  `WikiService`, `ProfileController` and `WikiController`.
+- **EDIT** `routes/web.php` — `GET /profile` (AuthMiddleware), `GET /profile/{id}`,
+  `GET /wiki`, `GET /wiki/{slug}` — all registered before the `/{title}` catch-all.
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — appended
+  `.profile*` / `.wiki*` / `.listing__profile-link` styles (plain CSS, both
+  source and compiled bundle, same convention as Tasks A–H).
+
+### Architectural Decisions
+- **Header links were already present, routes were not.** `partials/header.php`
+  already pointed the nav at `/wiki` and the signed-in chip at `/profile`; Task I
+  simply supplies the missing routes/controllers/views, so no header change was
+  needed and nothing is orphaned. The author archive now cross-links to the full
+  profile, and the profile links back to the article archive.
+- **`/profile` vs `/profile/{id}`.** The bare `/profile` route is guarded by
+  `AuthMiddleware` and shows the current user (matching the header chip);
+  `/profile/{id}` is the public view of any user. Both render the same `profile`
+  view via a shared private helper. Registered before the single-segment
+  `/{title}` catch-all so the static `/profile` and `/wiki` segments win.
+- **Read-only, reuse over duplication.** Profile articles reuse the existing
+  `ArticleService::authorFeed/authorName/authorTotalPages` and the shared
+  `feed-grid`/`pagination` partials rather than new queries. Wiki reads only the
+  legacy `wiki_terms` columns; status is filtered to `'published'` exactly as the
+  legacy code did.
+- **Graceful degradation.** `WikiService` wraps every repository call in
+  try/catch so a missing `wiki_terms` table yields an empty glossary / 404
+  instead of a fatal — mirroring the StoryService resilience pattern. The
+  glossary list is filesystem-cached (300s); single-term reads are uncached.
+- **Content rendering.** A term's `full_content` is author-managed rich HTML and
+  is echoed raw (same convention as article bodies); the brief description and
+  all profile fields are escaped via `e()`. The legacy in-body term auto-linking
+  (DOM rewriting in `wiki_functions.php`) was intentionally NOT ported — it is a
+  presentation nicety, not a compatibility requirement; discoverability is
+  provided by the glossary index instead. (Candidate refinement for later.)
+- **DB untouched.** Read-only feature; no schema/data changes; Store/Chat
+  LegacyBridge untouched; local compiled Tailwind only, zero external requests;
+  RTL/glass UI consistent with the rest of the rewrite.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all new/edited PHP files (2 controllers, wiki
+  model/repository/service, Application, routes) and all views.
+- Render smoke tests through the real view templates (helpers + `mbstring`):
+  profile with articles (header, initial-avatar fallback, @username, title, bio,
+  archive link, article grid, 2-page pager), profile with image avatar + no
+  articles/bio (empty-state, bio block omitted), wiki index (full-page term
+  linked, tooltip term not linked, "more" link), empty wiki index, wiki show with
+  full HTML body + updated date, wiki show brief-only fallback, and the edited
+  author page (profile cross-link) — all render with no warnings/fatals.
+- Reflection/coverage: routed methods exist (ProfileController me/show,
+  WikiController index/show); WikiController→WikiService (list/find) and
+  WikiService→WikiRepository (publishedList/findBySlug) resolve; ProfileController
+  uses ArticleService::authorFeed/authorTotalPages and UserService::find — all
+  present.
+- Route precedence: `/profile`, `/profile/{id}`, `/wiki`, `/wiki/{slug}` all
+  registered before the `/{title}` catch-all (verified by registration order).
+- Static SQL arity: publishedList (0), findBySlug (1 ↔ slug) — balanced; reads
+  filter `status = 'published'` and touch only existing columns.
+- Note: no MySQL in the sandbox, so the wiki queries were validated structurally
+  (arity + legacy-column parity + the defensive missing-table path) rather than
+  executed — consistent with prior tasks.
+
+### Next (Task J)
+Image upload pipeline (storage & optimization) — wire real image uploads for the
+article and story image fields (currently URL/path inputs), saved under
+`public/uploads/…` with size/format handling, on shared hosting (no queues).

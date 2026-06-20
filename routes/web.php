@@ -16,6 +16,8 @@ use App\Controllers\FeedController;
 use App\Controllers\SearchController;
 use App\Controllers\HomeController;
 use App\Controllers\StoryController;
+use App\Controllers\ProfileController;
+use App\Controllers\WikiController;
 use App\Core\Router;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
@@ -125,6 +127,18 @@ return static function (Router $router): void {
     $router->get('/search', [SearchController::class, 'index']);
     $router->get('/category/{id}', [CategoryController::class, 'show']);
     $router->get('/author/{id}', [AuthorController::class, 'show']);
+
+    // Public profile pages (Phase 3, Task I). `/profile` is the signed-in user's
+    // own profile (AuthMiddleware redirects guests to /login); `/profile/{id}` is
+    // any user's public profile. Registered before the `/{title}` catch-all so the
+    // static `/profile` segment wins.
+    $router->get('/profile', [ProfileController::class, 'me'], [AuthMiddleware::class]);
+    $router->get('/profile/{id}', [ProfileController::class, 'show']);
+
+    // Knowledge base / glossary (Task I): index + single published term by slug.
+    // `/wiki` (single segment) is registered before the `/{title}` catch-all.
+    $router->get('/wiki', [WikiController::class, 'index']);
+    $router->get('/wiki/{slug}', [WikiController::class, 'show']);
 
     // Article detail page (resolved by title). MUST stay LAST: its single-segment
     // pattern `/{title}` is a catch-all, so every specific route above wins first.

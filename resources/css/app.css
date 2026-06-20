@@ -570,3 +570,45 @@ select.field__input { appearance: none; cursor: pointer; }
 .story-link { max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .story-link a { color: #7c9cff; }
 .story-link a:hover { text-decoration: underline; }
+
+/* ====================================================================
+   Profile & Wiki pages (Task I)
+   ==================================================================== */
+.listing__profile-link { display: inline-block; margin-top: .5rem; color: #7c9cff; font-size: .9rem; }
+.listing__profile-link:hover { text-decoration: underline; }
+
+.profile__head { display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap; padding: 1.4rem; }
+.profile__avatar { flex: 0 0 auto; }
+.profile__avatar-img,
+.profile__avatar-mark {
+  width: 5rem; height: 5rem; border-radius: 50%; object-fit: cover;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-size: 2rem; font-weight: 700; color: var(--text);
+}
+.profile__meta { min-width: 0; }
+.profile__name { margin: 0 0 .2rem; font-size: 1.5rem; }
+.profile__username { color: var(--muted); font-size: .9rem; margin: 0 0 .4rem; }
+.profile__title { color: #7c9cff; margin: 0 0 .3rem; }
+.profile__joined { color: var(--muted); font-size: .82rem; margin: 0 0 .4rem; }
+.profile__archive { color: #7c9cff; font-size: .85rem; }
+.profile__archive:hover { text-decoration: underline; }
+.profile__bio { padding: 1.2rem; margin: 1rem 0; line-height: 1.9; color: var(--text); }
+.profile__section-title { margin: 1.4rem 0 1rem; font-size: 1.2rem; }
+
+.wiki-grid { margin-top: 1rem; }
+.wiki-card { padding: 1.2rem; display: flex; flex-direction: column; gap: .5rem; }
+.wiki-card__term { margin: 0; font-size: 1.15rem; }
+.wiki-card__term a { color: var(--text); }
+.wiki-card__term a:hover { color: #7c9cff; }
+.wiki-card__brief { color: var(--muted); line-height: 1.8; margin: 0; }
+.wiki-card__more { margin-top: auto; color: #7c9cff; font-size: .85rem; }
+.wiki-entry { max-width: 52rem; margin: 0 auto; }
+.wiki-entry__back { margin-bottom: 1rem; }
+.wiki-entry__back a { color: var(--muted); }
+.wiki-entry__back a:hover { color: #7c9cff; }
+.wiki-entry__card { padding: 1.6rem; }
+.wiki-entry__term { margin: 0 0 .6rem; font-size: 1.8rem; }
+.wiki-entry__brief { color: var(--muted); font-style: italic; border-inline-start: 3px solid rgba(124,156,255,.5); padding-inline-start: .8rem; margin: 0 0 1.2rem; }
+.wiki-entry__body { line-height: 2; color: var(--text); }
+.wiki-entry__foot { margin-top: 1.4rem; padding-top: .8rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }

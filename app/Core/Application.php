@@ -56,6 +56,7 @@ final class Application
         $c->singleton(\App\Repositories\StoryRepository::class, static fn (Container $c): \App\Repositories\StoryRepository => new \App\Repositories\StoryRepository($c->get(Database::class)));
         $c->singleton(\App\Repositories\RbacRepository::class, static fn (Container $c): \App\Repositories\RbacRepository => new \App\Repositories\RbacRepository($c->get(Database::class)));
         $c->singleton(\App\Repositories\CommentRepository::class, static fn (Container $c): \App\Repositories\CommentRepository => new \App\Repositories\CommentRepository($c->get(Database::class)));
+        $c->singleton(\App\Repositories\WikiRepository::class, static fn (Container $c): \App\Repositories\WikiRepository => new \App\Repositories\WikiRepository($c->get(Database::class)));
 
         // Services
         $c->singleton(AuthService::class, static fn (Container $c): AuthService => new AuthService($c->get(UserRepository::class)));
@@ -64,6 +65,7 @@ final class Application
         $c->singleton(\App\Services\RbacService::class, static fn (Container $c): \App\Services\RbacService => new \App\Services\RbacService($c->get(\App\Repositories\RbacRepository::class)));
         $c->singleton(\App\Services\UserService::class, static fn (Container $c): \App\Services\UserService => new \App\Services\UserService($c->get(UserRepository::class)));
         $c->singleton(\App\Services\CommentService::class, static fn (Container $c): \App\Services\CommentService => new \App\Services\CommentService($c->get(\App\Repositories\CommentRepository::class)));
+        $c->singleton(\App\Services\WikiService::class, static fn (Container $c): \App\Services\WikiService => new \App\Services\WikiService($c->get(\App\Repositories\WikiRepository::class), $c->get(Cache::class)));
 
         // Middleware
         $c->singleton(AuthMiddleware::class, static fn (Container $c): AuthMiddleware => new AuthMiddleware($c->get(AuthService::class)));
@@ -118,6 +120,8 @@ final class Application
             \App\Controllers\AdminUserController::class => static fn (Container $c) => new \App\Controllers\AdminUserController($c->get(View::class), $c->get(\App\Services\UserService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\AdminCommentController::class => static fn (Container $c) => new \App\Controllers\AdminCommentController($c->get(View::class), $c->get(\App\Services\CommentService::class), $c->get(AuthService::class)),
             \App\Controllers\AdminStoryController::class => static fn (Container $c) => new \App\Controllers\AdminStoryController($c->get(View::class), $c->get(\App\Services\StoryService::class), $c->get(AuthService::class)),
+            \App\Controllers\ProfileController::class => static fn (Container $c) => new \App\Controllers\ProfileController($c->get(View::class), $c->get(\App\Services\UserService::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
+            \App\Controllers\WikiController::class => static fn (Container $c) => new \App\Controllers\WikiController($c->get(View::class), $c->get(\App\Services\WikiService::class), $c->get(AuthService::class)),
             \App\Controllers\CategoryController::class => static fn (Container $c) => new \App\Controllers\CategoryController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AuthorController::class => static fn (Container $c) => new \App\Controllers\AuthorController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\SearchController::class => static fn (Container $c) => new \App\Controllers\SearchController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
