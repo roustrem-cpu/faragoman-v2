@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AdminArticleController;
+use App\Controllers\AdminCommentController;
 use App\Controllers\AdminController;
 use App\Controllers\AdminRoleController;
 use App\Controllers\AdminUserController;
@@ -91,6 +92,16 @@ return static function (Router $router): void {
     $router->post('/admin/users/{id}', [AdminUserController::class, 'update'], [AuthMiddleware::class, 'gate.users', CsrfMiddleware::class]);
     $router->post('/admin/users/{id}/ban', [AdminUserController::class, 'ban'], [AuthMiddleware::class, 'gate.users', CsrfMiddleware::class]);
     $router->post('/admin/users/{id}/unban', [AdminUserController::class, 'unban'], [AuthMiddleware::class, 'gate.users', CsrfMiddleware::class]);
+
+    // Admin: comment moderation (Task G). List/approve/reject/delete comments
+    // under /admin/comments. Gated by auth + the `comments.moderate` permission
+    // via the `gate.comments` middleware; writes additionally pass through CSRF.
+    // Static segment registered before the `{id}` action patterns, and the whole
+    // block stays before the `/{title}` catch-all.
+    $router->get('/admin/comments', [AdminCommentController::class, 'index'], [AuthMiddleware::class, 'gate.comments']);
+    $router->post('/admin/comments/{id}/approve', [AdminCommentController::class, 'approve'], [AuthMiddleware::class, 'gate.comments', CsrfMiddleware::class]);
+    $router->post('/admin/comments/{id}/reject', [AdminCommentController::class, 'reject'], [AuthMiddleware::class, 'gate.comments', CsrfMiddleware::class]);
+    $router->post('/admin/comments/{id}/delete', [AdminCommentController::class, 'destroy'], [AuthMiddleware::class, 'gate.comments', CsrfMiddleware::class]);
 
     // Content discovery (Phase 3): search, category and author listings.
     // Registered BEFORE the /{title} catch-all so they always win.

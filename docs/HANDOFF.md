@@ -453,3 +453,97 @@ writing only to existing `users` columns (zero schema change).
 ### Next (Task G)
 Admin Panel — Comment Moderation UI (list/approve/reject/delete comments) under
 `/admin/comments`, gated by the `comments.moderate` permission.
+
+
+---
+
+## Task G — Admin Panel: Comment Moderation UI
+_Date: 2026-06-21 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Give moderators a back-office screen under `/admin/comments` to review the
+legacy `comments` table: list (filterable by status), approve, reject and
+delete — writing only to existing columns with zero schema change.
+
+### Files Modified
+- **NEW** `app/Models/Comment.php` — read-only model over the legacy `comments`
+  columns (id, user_id, guest_name, article_id, parent_id, comment, status,
+  created_at) plus optional joined fields (`display_name`, `article_title`).
+  Helpers: `authorName()` (display name → guest name → «ناشناس») and `isGuest()`.
+- **NEW** `app/Repositories/CommentRepository.php` — all `comments` SQL:
+  `paginate(status,limit,offset)` and `countAll(status)` (LEFT JOIN users for the
+  author name, JOIN articles for the title — mirrors the legacy admin SELECT),
+  `find(id)`, `pendingCount()`, `setStatus(id,status)`, `delete(id)`.
+- **NEW** `app/Services/CommentService.php` — pagination (20/page), status
+  filter whitelist (`pending|approved|all`), and `approve`/`reject`/`delete`.
+- **NEW** `app/Controllers/AdminCommentController.php` — index (`?status=` filter
+  + `?page_num=`), approve, reject, destroy. Flash via `?m=` redirect param;
+  404 for missing ids.
+- **NEW** `resources/views/admin/comments/index.php` — moderation table (comment
+  excerpt, author + guest badge, article link, status tag, date, row actions)
+  with status-filter tabs (pending badge count) + pagination.
+- **EDIT** `app/Core/Application.php` — DI bindings for `CommentRepository`,
+  `CommentService`, `AdminCommentController`, and a new `gate.comments`
+  middleware (`RoleMiddleware->require('comments.moderate')`).
+- **EDIT** `routes/web.php` — 4 routes under `/admin/comments` (read:
+  `[AuthMiddleware, gate.comments]`; writes add `CsrfMiddleware`). Registered in
+  the admin block, before the `/{title}` catch-all.
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — appended
+  `.comment-filters*` and `.comment-cell` styles (plain CSS, both source and
+  compiled bundle, same convention as Tasks A–F).
+
+### Architectural Decisions
+- **Dedicated `gate.comments` (permission `comments.moderate`), not
+  `gate.admin`.** Mirrors the Task E/F pattern of section-scoped gates. Per the
+  seeded grants this is held by super_admin (bypass), section_admin AND editor —
+  so editors can moderate discussion without the broader admin permissions. The
+  `comments.moderate` permission already existed in `database/schema.sql`
+  (category `comments`); no schema/seed change was needed.
+- **Backward-compatible status whitelist = `{pending, approved}` (CRITICAL).**
+  The legacy `comments` table is NOT defined in `database/schema.sql`. Its column
+  set and the only status values it uses were recovered from the legacy
+  `project` repo: the INSERT in `public_html/index.php`
+  (`user_id, guest_name, guest_email, article_id, parent_id, comment, status`),
+  the public read in `includes/chat_functions.php`, and the moderation list in
+  `pages/admin/comments.php`. Legacy only ever writes `'approved'` or
+  `'pending'`. To guarantee no out-of-range value reaches the production column
+  (same precedent as the Task D article-status decision), moderation maps:
+  approve → `'approved'`, reject → `'pending'` (un-approve / hide; reversible),
+  delete → row removed. The public article query shows `'approved'` to everyone
+  (and a user's own `'pending'`), so reject correctly removes a comment from the
+  public view.
+- **Repository owns all SQL; service orchestrates; controller stays thin** —
+  consistent with the existing Repository/Service/Controller layering. Reads use
+  the LEFT JOIN users / JOIN articles shape lifted from the legacy admin query
+  so guest comments (NULL `user_id`) and the article title both resolve.
+- **Article links use the title-based public route** (`/{rawurlencode(title)}`,
+  Task A) rather than the legacy `index.php?page=article&id=` URL.
+- **DB additive-compatible.** Only the pre-existing `comments` columns are
+  read/written — no migrations, no new tables, no dropped columns. Store/Chat
+  LegacyBridge untouched; local compiled Tailwind only, zero external requests;
+  RTL/glass UI consistent with the Task C–F admin shell.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all new/edited PHP files (model, repository,
+  service, controller, Application, routes) and the new view.
+- Render smoke tests through the real view template (helpers + `mbstring`):
+  pending list (filter tab active + pending badge, status tag, approve+delete
+  forms with CSRF, truncated RTL comment text, title-based article link, no
+  reject button on a pending row), approved list (success flash, reject+delete
+  forms, guest badge, no approve button on an approved row), and the empty-state
+  + 2-page pagination — all render with no warnings/fatals.
+- Reflection/coverage check: every routed controller method exists
+  (index/approve/reject/destroy); `CommentService` exposes every method the
+  controller calls; `CommentRepository` exposes every method the service calls.
+- Static SQL arity: paginate (2 base placeholders + 1 when a status filter is
+  applied ↔ limit/offset[/status] binds), countAll (0/1 ↔ status), find (1 ↔ id),
+  setStatus (2 ↔ status,id), delete (1 ↔ id) — all balanced; the status column
+  is only ever bound `'approved'`/`'pending'`.
+- Note: no MySQL in the sandbox, so write/list queries were validated
+  structurally (placeholder/bind arity + legacy-column parity) rather than
+  executed — consistent with prior tasks.
+
+### Next (Task H)
+Admin Panel — Stories Management UI (manage the additive `stories` table:
+list/create/reorder/activate/delete) under `/admin/stories`, gated by the
+`stories.manage` permission.

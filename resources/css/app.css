@@ -532,3 +532,30 @@ select.field__input { appearance: none; cursor: pointer; }
 .user-identity__link:hover { text-decoration: underline; }
 
 @media (min-width: 720px) { .user-search__input { min-width: 20rem; } }
+
+/* ====================================================================
+   Comment moderation (Task G) — /admin/comments
+   ==================================================================== */
+.comment-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
+.comment-filters__tab {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .35rem .8rem; border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted); font-size: .85rem; text-decoration: none;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.comment-filters__tab:hover { color: var(--text); border-color: rgba(124, 156, 255, 0.4); }
+.comment-filters__tab.is-active {
+  color: #fff; border-color: rgba(124, 156, 255, 0.6);
+  background: rgba(124, 156, 255, 0.18);
+}
+.comment-filters__badge {
+  min-width: 1.3rem; padding: 0 .35rem; border-radius: 999px;
+  background: rgba(245, 158, 11, 0.22); color: #fbbf24;
+  font-size: .72rem; line-height: 1.3rem; text-align: center;
+}
+.comment-cell {
+  max-width: 32rem; white-space: normal; word-break: break-word;
+  line-height: 1.7; color: var(--text);
+}
