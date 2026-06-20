@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\ArticleController;
 use App\Controllers\AuthController;
 use App\Controllers\FeedController;
 use App\Controllers\HomeController;
@@ -42,6 +43,11 @@ return static function (Router $router): void {
     $router->get('/feed.json', [FeedController::class, 'json']);
     $router->get('/feed.txt', [FeedController::class, 'text']);
 
-    // Further routes (article, profile, wiki, admin…) are added incrementally
-    // in later phases of the rewrite.
+    // Article detail page (resolved by title). MUST stay LAST: its single-segment
+    // pattern `/{title}` is a catch-all, so every specific route above wins first.
+    // This closes the 404 the home feed cards used to hit (they link to /{title}).
+    $router->get('/{title}', [ArticleController::class, 'show']);
+
+    // Further routes (category, author, search, profile, wiki, admin…) are added
+    // incrementally in later phases of the rewrite.
 };

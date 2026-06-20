@@ -81,6 +81,7 @@ final class Application
     {
         return [
             \App\Controllers\HomeController::class => static fn (Container $c) => new \App\Controllers\HomeController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class), $c->get(\App\Services\StoryService::class)),
+            \App\Controllers\ArticleController::class => static fn (Container $c) => new \App\Controllers\ArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AuthController::class => static fn (Container $c) => new \App\Controllers\AuthController($c->get(View::class), $c->get(AuthService::class)),
             \App\Controllers\StoryController::class => static fn (Container $c) => new \App\Controllers\StoryController($c->get(\App\Services\StoryService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\FeedController::class => static fn (Container $c) => new \App\Controllers\FeedController($c->get(ArticleService::class)),
