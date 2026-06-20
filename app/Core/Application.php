@@ -91,6 +91,10 @@ final class Application
         // moderate discussion without holding the broader admin permissions.
         $c->singleton('gate.comments', static fn (Container $c): RoleMiddleware => $c->get(RoleMiddleware::class)->require('comments.moderate'));
 
+        // Gate for the stories-management section (Task H): the `stories.manage`
+        // permission (held by super_admin (bypass) and section_admin in the seed).
+        $c->singleton('gate.stories', static fn (Container $c): RoleMiddleware => $c->get(RoleMiddleware::class)->require('stories.manage'));
+
         // Router
         $c->singleton(Router::class, static fn (Container $c): Router => new Router($c));
 
@@ -113,6 +117,7 @@ final class Application
             \App\Controllers\AdminRoleController::class => static fn (Container $c) => new \App\Controllers\AdminRoleController($c->get(View::class), $c->get(\App\Services\RbacService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\AdminUserController::class => static fn (Container $c) => new \App\Controllers\AdminUserController($c->get(View::class), $c->get(\App\Services\UserService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\AdminCommentController::class => static fn (Container $c) => new \App\Controllers\AdminCommentController($c->get(View::class), $c->get(\App\Services\CommentService::class), $c->get(AuthService::class)),
+            \App\Controllers\AdminStoryController::class => static fn (Container $c) => new \App\Controllers\AdminStoryController($c->get(View::class), $c->get(\App\Services\StoryService::class), $c->get(AuthService::class)),
             \App\Controllers\CategoryController::class => static fn (Container $c) => new \App\Controllers\CategoryController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AuthorController::class => static fn (Container $c) => new \App\Controllers\AuthorController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\SearchController::class => static fn (Container $c) => new \App\Controllers\SearchController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),

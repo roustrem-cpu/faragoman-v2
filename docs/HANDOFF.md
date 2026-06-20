@@ -547,3 +547,98 @@ delete — writing only to existing columns with zero schema change.
 Admin Panel — Stories Management UI (manage the additive `stories` table:
 list/create/reorder/activate/delete) under `/admin/stories`, gated by the
 `stories.manage` permission.
+
+
+---
+
+## Task H — Admin Panel: Stories Management UI
+_Date: 2026-06-21 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Give administrators a back-office screen under `/admin/stories` to manage the
+additive `stories` table: list, create, edit, reorder, activate/deactivate and
+delete — driving the same data the public home story-ring reads, with zero
+schema change.
+
+### Files Modified
+- **NEW** `app/Controllers/AdminStoryController.php` — index / create / store /
+  edit / update / activate / deactivate / moveUp / moveDown / destroy. Inline
+  validation (title + image_url required, length caps), flash via `?m=` redirect
+  param, 404 for missing ids.
+- **NEW** `resources/views/admin/stories/index.php` — management table (image
+  thumb, title, link, order, active/inactive tag, per-row actions: ▲/▼ reorder
+  with end-disabled buttons, edit, activate/deactivate, delete) + create button;
+  shows a guided notice when the optional `is_active` column is absent.
+- **NEW** `resources/views/admin/stories/form.php` — shared create/edit form
+  (title, image_url, link_url, display_order) with error + old-input repopulation.
+- **EDIT** `app/Repositories/StoryRepository.php` — added writes `update()`
+  (legacy-guaranteed columns only) and `setActive()` (guarded), plus
+  `supportsActiveFlag()` column-probe. Existing `all`/`find`/`create`/`delete`/
+  `reorder` preserved verbatim.
+- **EDIT** `app/Services/StoryService.php` — added admin `all()` (uncached,
+  defensive), `find()`, `update()`, `setActive()`, `supportsActiveFlag()` and
+  `move()` (sequential re-index + neighbour swap); every mutation flushes the
+  `stories:active` cache. Public `active()`/`create()`/`delete()` unchanged.
+- **EDIT** `app/Core/Application.php` — DI binding for `AdminStoryController` and
+  a new `gate.stories` middleware (`RoleMiddleware->require('stories.manage')`).
+- **EDIT** `routes/web.php` — 10 routes under `/admin/stories` (reads:
+  `[AuthMiddleware, gate.stories]`; writes add `CsrfMiddleware`). Static segments
+  before the `{id}` patterns; whole block before the `/{title}` catch-all.
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — appended
+  `.story-thumb` / `.story-link` styles (plain CSS, both source and compiled
+  bundle, same convention as Tasks A–G).
+
+### Architectural Decisions
+- **Dedicated `gate.stories` (permission `stories.manage`).** Consistent with the
+  Task E/F/G section-gate pattern. Per the seed it is held by super_admin
+  (bypass) and section_admin — editors/authors do not get it, so story curation
+  is limited to admins. The `stories.manage` permission already existed in
+  `database/schema.sql`; no schema/seed change was needed.
+- **Optional `is_active` handled defensively (CRITICAL).** The additive `stories`
+  schema adds `is_active`, but a pre-existing legacy `stories` table created
+  before this column will not have it (CREATE TABLE IF NOT EXISTS never alters an
+  existing table). `StoryRepository::supportsActiveFlag()` probes for the column
+  with a guarded SELECT (mysqli runs in STRICT/exception mode, so a missing
+  column throws and is caught → false). `setActive()` is a safe no-op when the
+  column is absent, and the admin UI hides the activate/deactivate buttons and
+  shows a guided notice. The model already treats a missing column as "active",
+  so visibility is unchanged on legacy databases. create/edit writes touch only
+  the legacy-guaranteed columns (title, image_url, link_url, display_order).
+- **Deterministic reorder.** `move()` re-indexes the whole list to a clean
+  sequential `display_order` (0..n) and swaps the target with its neighbour, so
+  ordering is reliable even when legacy rows had duplicate/gappy order values —
+  and it only ever writes the always-present `display_order` column.
+- **Cache coherence.** Every admin mutation flushes the `stories:active` cache so
+  the public home ring reflects changes on the next request (no daemon required;
+  shared-hosting friendly). The admin list reads uncached for a live view.
+- **Frozen modules untouched.** Stories is the historically-disabled feature
+  re-enabled in the rewrite — NOT the frozen Store/Chat modules — so it is fully
+  editable. Store/Chat LegacyBridge untouched; local compiled Tailwind only,
+  zero external requests; RTL/glass UI consistent with the Task C–G admin shell.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all new/edited PHP files (controller,
+  repository, service, Application, routes) and both views.
+- Render smoke tests through the real view templates (helpers + `mbstring`):
+  index with `is_active` supported (success flash, image thumbs, active+inactive
+  tags, ▲/▼ reorder with first/last buttons disabled, activate/deactivate +
+  delete CSRF forms, create button), index with the column absent (guided notice
+  + activate/deactivate hidden), empty-state, create form, and edit form
+  (prefilled values + validation error) — all render with no warnings/fatals.
+- Reflection/coverage: every routed controller method exists
+  (index/create/store/edit/update/activate/deactivate/moveUp/moveDown/destroy);
+  `StoryService` exposes every method the controller calls; `StoryRepository`
+  exposes every method the service calls; the public `StoryController` contract
+  (`active`/`create`/`delete`) is preserved.
+- Static SQL arity: find (1↔id), create (4↔title,image,link,order), update
+  (5↔…,id), delete (1↔id), reorder (2↔order,id), setActive (2↔active,id),
+  all/supportsActiveFlag (0) — all balanced; writes touch only existing columns
+  and `is_active` is written only after the column-presence probe passes.
+- Note: no MySQL in the sandbox, so write/reorder queries were validated
+  structurally (placeholder/bind arity + legacy-column parity + the guarded
+  `is_active` path) rather than executed — consistent with prior tasks.
+
+### Next (Task I)
+Profile and Wiki pages (public `/profile` / author profile + the wiki/knowledge
+pages), reusing the existing `wiki_functions` data shape from the legacy repo
+where applicable.

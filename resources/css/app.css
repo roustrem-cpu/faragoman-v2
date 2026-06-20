@@ -559,3 +559,14 @@ select.field__input { appearance: none; cursor: pointer; }
   max-width: 32rem; white-space: normal; word-break: break-word;
   line-height: 1.7; color: var(--text);
 }
+
+/* ====================================================================
+   Stories management (Task H) — /admin/stories
+   ==================================================================== */
+.story-thumb {
+  width: 3rem; height: 3rem; border-radius: 0.6rem; object-fit: cover;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.story-link { max-width: 18rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-link a { color: #7c9cff; }
+.story-link a:hover { text-decoration: underline; }

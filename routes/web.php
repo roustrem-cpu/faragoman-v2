@@ -6,6 +6,7 @@ use App\Controllers\AdminArticleController;
 use App\Controllers\AdminCommentController;
 use App\Controllers\AdminController;
 use App\Controllers\AdminRoleController;
+use App\Controllers\AdminStoryController;
 use App\Controllers\AdminUserController;
 use App\Controllers\ArticleController;
 use App\Controllers\AuthController;
@@ -102,6 +103,22 @@ return static function (Router $router): void {
     $router->post('/admin/comments/{id}/approve', [AdminCommentController::class, 'approve'], [AuthMiddleware::class, 'gate.comments', CsrfMiddleware::class]);
     $router->post('/admin/comments/{id}/reject', [AdminCommentController::class, 'reject'], [AuthMiddleware::class, 'gate.comments', CsrfMiddleware::class]);
     $router->post('/admin/comments/{id}/delete', [AdminCommentController::class, 'destroy'], [AuthMiddleware::class, 'gate.comments', CsrfMiddleware::class]);
+
+    // Admin: stories management (Task H). List/create/edit/reorder/activate/
+    // delete the additive `stories` table under /admin/stories. Gated by auth +
+    // the `stories.manage` permission via the `gate.stories` middleware; writes
+    // additionally pass through CSRF. Static segments registered before the
+    // `{id}` patterns; whole block stays before the `/{title}` catch-all.
+    $router->get('/admin/stories', [AdminStoryController::class, 'index'], [AuthMiddleware::class, 'gate.stories']);
+    $router->get('/admin/stories/create', [AdminStoryController::class, 'create'], [AuthMiddleware::class, 'gate.stories']);
+    $router->post('/admin/stories', [AdminStoryController::class, 'store'], [AuthMiddleware::class, 'gate.stories', CsrfMiddleware::class]);
+    $router->get('/admin/stories/{id}/edit', [AdminStoryController::class, 'edit'], [AuthMiddleware::class, 'gate.stories']);
+    $router->post('/admin/stories/{id}', [AdminStoryController::class, 'update'], [AuthMiddleware::class, 'gate.stories', CsrfMiddleware::class]);
+    $router->post('/admin/stories/{id}/activate', [AdminStoryController::class, 'activate'], [AuthMiddleware::class, 'gate.stories', CsrfMiddleware::class]);
+    $router->post('/admin/stories/{id}/deactivate', [AdminStoryController::class, 'deactivate'], [AuthMiddleware::class, 'gate.stories', CsrfMiddleware::class]);
+    $router->post('/admin/stories/{id}/move-up', [AdminStoryController::class, 'moveUp'], [AuthMiddleware::class, 'gate.stories', CsrfMiddleware::class]);
+    $router->post('/admin/stories/{id}/move-down', [AdminStoryController::class, 'moveDown'], [AuthMiddleware::class, 'gate.stories', CsrfMiddleware::class]);
+    $router->post('/admin/stories/{id}/delete', [AdminStoryController::class, 'destroy'], [AuthMiddleware::class, 'gate.stories', CsrfMiddleware::class]);
 
     // Content discovery (Phase 3): search, category and author listings.
     // Registered BEFORE the /{title} catch-all so they always win.
