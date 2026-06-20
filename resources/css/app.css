@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Local font (no external loading). Place the .woff2 in public/assets/font/.
+   ========================================================================== */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/assets/font/Vazirmatn.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   Design tokens
+   ========================================================================== */
+@layer base {
+  :root {
+    --bg: #070b18;
+    --surface: rgba(20, 27, 51, 0.66);
+    --surface-2: rgba(28, 37, 66, 0.55);
+    --border: rgba(124, 156, 255, 0.14);
+    --text: #e7ecff;
+    --muted: #9aa6cc;
+  }
+
+  * { box-sizing: border-box; }
+
+  body.page {
+    @apply m-0 min-h-screen font-sans antialiased;
+    color: var(--text);
+    background: radial-gradient(1200px 600px at 80% -10%, #1b2550 0%, transparent 60%),
+                radial-gradient(900px 500px at 0% 10%, #15224a 0%, transparent 55%),
+                var(--bg);
+  }
+
+  a { @apply no-underline text-inherit; }
+}
+
+/* ==========================================================================
+   Components — premium pseudo-3D surfaces, glassmorphism, soft lighting
+   ========================================================================== */
+@layer components {
+  .container { @apply w-full max-w-5xl mx-auto px-4; }
+  .main { @apply py-8 sm:py-12 min-h-[60vh]; }
+
+  /* Ambient animated aurora behind everything */
+  .aurora {
+    @apply fixed inset-0 -z-10 pointer-events-none opacity-70;
+    background:
+      radial-gradient(40rem 40rem at 70% -10%, rgba(91,124,250,.20), transparent 70%),
+      radial-gradient(30rem 30rem at -10% 30%, rgba(34,211,238,.14), transparent 70%);
+    filter: blur(8px);
+  }
+
+  /* Glass card with layered, realistic depth */
+  .card {
+    @apply rounded-xl2 p-5 shadow-lift;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  /* Header */
+  .site-header {
+    @apply sticky top-0 z-40;
+    background: linear-gradient(180deg, rgba(7,11,24,.85), rgba(7,11,24,.55));
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .header-inner { @apply flex items-center justify-between gap-4 py-3; }
+  .brand { @apply flex items-center gap-2 font-bold text-lg; }
+  .brand-mark {
+    @apply grid place-items-center w-9 h-9 rounded-xl font-extrabold text-white shadow-glow;
+    background: linear-gradient(145deg, var(--tw-gradient-from, #5b7cfa), #4861e6);
+    background-image: linear-gradient(145deg, #7c9cff, #4861e6);
+  }
+  .brand-mark--lg { @apply w-14 h-14 text-2xl rounded-xl2; }
+  .nav { @apply hidden sm:flex items-center gap-1; }
+  .nav-link { @apply px-3 py-2 rounded-lg text-sm transition; color: var(--muted); }
+  .nav-link:hover { @apply bg-white/5; color: var(--text); }
+  .nav-link.is-active { color: var(--text); @apply bg-white/5; }
+  .header-actions { @apply flex items-center gap-2; }
+  .inline-form { @apply inline; }
+  .avatar-chip { @apply flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-sm; }
+
+  /* Buttons with tactile pseudo-3D press */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm cursor-pointer transition-all duration-150 border-0;
+    transform: translateY(0);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-block { @apply w-full; }
+  .btn-primary {
+    @apply text-white shadow-glow;
+    background-image: linear-gradient(145deg, #6d8bff, #4861e6);
+  }
+  .btn-primary:hover { filter: brightness(1.07); box-shadow: 0 0 0 1px rgba(124,156,255,.4), 0 14px 48px rgba(91,124,250,.5); }
+  .btn-ghost { @apply bg-white/5 text-[color:var(--text)]; }
+  .btn-ghost:hover { @apply bg-white/10; }
+
+  /* Hero */
+  .hero { @apply relative text-center py-10 sm:py-16 mb-6; }
+  .hero-glow {
+    @apply absolute left-1/2 top-0 -translate-x-1/2 w-72 h-72 rounded-full -z-10 animate-floaty;
+    background: radial-gradient(circle, rgba(91,124,250,.45), transparent 65%);
+    filter: blur(30px);
+  }
+  .hero-title { @apply text-3xl sm:text-5xl font-extrabold tracking-tight mb-3; }
+  .hero-sub { @apply text-base sm:text-lg; color: var(--muted); }
+
+  /* Feed grid */
+  .card-grid {
+    @apply grid gap-5;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  }
+  .article-card { @apply transition-transform duration-200; }
+  .article-card:hover { transform: translateY(-4px); box-shadow: 0 22px 60px rgba(8,12,28,.5); }
+  .article-card__title { @apply text-lg font-bold leading-snug my-2; }
+  .article-card__title a:hover { color: var(--brand-400, #7c9cff); }
+  .article-card__excerpt { @apply text-sm leading-7 mb-3; color: var(--muted); }
+  .article-card__meta { @apply flex items-center gap-2 text-xs; color: var(--muted); }
+  .dot { @apply opacity-50; }
+  .badge {
+    @apply inline-block px-2.5 py-1 rounded-full text-xs font-medium;
+    background: rgba(34,211,238,.12); color: #67e8f9;
+  }
+
+  /* Pagination */
+  .pagination { @apply flex flex-wrap items-center justify-center gap-2 mt-8; }
+  .page-pill { @apply grid place-items-center min-w-9 h-9 px-3 rounded-lg bg-white/5 text-sm; }
+  .page-pill.is-active { @apply text-white; background-image: linear-gradient(145deg, #6d8bff, #4861e6); }
+
+  /* Auth */
+  .auth-wrap { @apply min-h-[70vh] grid place-items-center; }
+  .auth-card { @apply w-full max-w-md; }
+  .auth-card__head { @apply text-center mb-6; }
+  .auth-card__head h1 { @apply text-2xl font-bold mt-3 mb-1; }
+  .auth-card__head p { color: var(--muted); }
+  .auth-card__foot { @apply text-center mt-4 text-sm; }
+  .auth-card__foot a { color: var(--brand-400, #7c9cff); }
+
+  /* Forms */
+  .form { @apply flex flex-col gap-4; }
+  .field { @apply flex flex-col gap-1.5; }
+  .field__label { @apply text-sm; color: var(--muted); }
+  .field__input {
+    @apply w-full px-3.5 py-3 rounded-xl text-[color:var(--text)] outline-none transition;
+    background: rgba(8,12,28,.5);
+    border: 1px solid var(--border);
+  }
+  .field__input:focus { border-color: rgba(124,156,255,.6); box-shadow: 0 0 0 4px rgba(91,124,250,.18); }
+
+  .alert { @apply rounded-xl px-4 py-3 text-sm mb-4; }
+  .alert-error { background: rgba(244,63,94,.12); color: #fda4af; border: 1px solid rgba(244,63,94,.25); }
+
+  /* Footer */
+  .site-footer { @apply mt-16 py-8; border-top: 1px solid var(--border); }
+  .footer-inner { @apply flex flex-col sm:flex-row items-center justify-between gap-4; }
+  .footer-brand { @apply flex items-center gap-3; color: var(--muted); }
+  .footer-copy { @apply text-sm; color: var(--muted); }
+
+  /* States */
+  .empty-state { @apply text-center; color: var(--muted); }
+  .error-page { @apply min-h-[60vh] grid place-items-center; }
+  .error-card { @apply text-center max-w-md; }
+  .error-code { @apply text-6xl font-extrabold mb-2; background-image: linear-gradient(145deg,#7c9cff,#22d3ee); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .error-text { color: var(--muted); @apply mb-5; }
+  .error-trace { @apply text-left text-xs bg-black/40 rounded-lg p-3 overflow-auto my-4 max-h-64; direction: ltr; }
+}

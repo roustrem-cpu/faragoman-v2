@@ -1,0 +1,20 @@
+# Faragoman v2 — root redirect to /public
+#
+# Use this file ONLY when you upload the whole project into your web root and
+# cannot change the document root to `/public`. It transparently forwards every
+# request into the public/ front controller while keeping app code private.
+#
+# If your host lets you point the domain's document root directly at /public,
+# you can delete this file entirely.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(\.git|app|config|routes|resources|storage|database|node_modules)(/.*)?$ - [F,L]
+
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Block direct access to sensitive files.
+<FilesMatch "\.(env|json|lock|neon|dist|md|sql)$">
+    Require all denied
+</FilesMatch>

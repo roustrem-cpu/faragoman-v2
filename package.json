@@ -1,0 +1,13 @@
+{
+  "name": "faragoman-v2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Faragoman v2 — premium frontend build pipeline (compiled Tailwind, zero runtime deps).",
+  "scripts": {
+    "dev": "tailwindcss -i ./resources/css/app.css -o ./public/assets/css/app.min.css --watch",
+    "build": "tailwindcss -i ./resources/css/app.css -o ./public/assets/css/app.min.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
