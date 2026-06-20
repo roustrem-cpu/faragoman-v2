@@ -50,6 +50,19 @@ final class ArticleService
         return (int) max(1, (int) ceil($total / $perPage));
     }
 
+    /**
+     * Total number of published articles (cached scalar). Used by the admin
+     * dashboard. Shares the home-count cache key to avoid a duplicate query.
+     */
+    public function publishedCount(): int
+    {
+        return $this->cache->remember(
+            'feed:home:count',
+            self::FEED_CACHE_TTL,
+            fn (): int => $this->articles->countPublished(),
+        );
+    }
+
     public function findByTitle(string $title): ?Article
     {
         return $this->articles->findByTitle($title);

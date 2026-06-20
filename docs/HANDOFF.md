@@ -123,3 +123,71 @@ reachable from the existing UI.
 
 ### Next (Task C)
 Admin Panel — Foundation, layout, and routing.
+
+
+---
+
+## Task C — Admin Panel: Foundation, layout & routing
+_Date: 2026-06-20 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Stand up the back-office shell: a gated `/admin` entry point, a reusable admin
+layout (sidebar + topbar), a dashboard landing page, and the routing/DI
+plumbing that Tasks D–F will build their management UIs on top of.
+
+### Files Modified
+- **NEW** `app/Controllers/AdminController.php` — `dashboard()` renders the
+  admin shell; reads only (`ArticleService::publishedCount()`).
+- **NEW** `resources/views/layouts/admin.php` — admin shell layout (separate
+  from the public `layouts/app`); `noindex` meta; loads the same compiled CSS.
+- **NEW** `resources/views/admin/dashboard.php` — stat card + section hub grid.
+- **NEW** `resources/views/partials/admin-sidebar.php` — nav (dashboard,
+  articles, users, comments, stories, roles) with active-state highlighting.
+- **NEW** `resources/views/partials/admin-topbar.php` — heading, view-site
+  link, user chip + CSRF-protected logout.
+- **EDIT** `app/Controllers/Controller.php` — added `renderWith($layout, ...)`
+  so controllers can choose a non-default layout (the base `render()` always
+  used `layouts/app`).
+- **EDIT** `app/Services/ArticleService.php` — added `publishedCount()` (cached
+  scalar; shares the home-count cache key).
+- **EDIT** `app/Core/Application.php` — registered the `AdminController` binding
+  and a `gate.admin` middleware binding
+  (`RoleMiddleware->require('admin.access')`).
+- **EDIT** `routes/web.php` — `GET /admin` with `[AuthMiddleware, gate.admin]`,
+  registered before the `/{title}` catch-all.
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — appended
+  the `.admin-*`, `.stat-card`, `.admin-cards` shell styles (plain CSS, both
+  source and compiled bundle).
+
+### Architectural Decisions
+- **Access control via existing primitives.** `RoleMiddleware` is configured
+  through its `require($permission)` clone; since the Router resolves route
+  middleware by *container id*, I exposed a pre-configured instance under the
+  `gate.admin` id rather than changing the Router. Pipeline:
+  `AuthMiddleware` (guests → /login) → `gate.admin` (RBAC `admin.access`).
+- **Permission slug `admin.access`.** Super Admins bypass all checks (always
+  in); other roles get in once granted via the RBAC tables / fallback matrix.
+  Task E will provide the UI to assign it.
+- **Dedicated admin layout** kept fully separate from the public layout (own
+  sidebar/topbar chrome, `noindex`), reusing the same compiled CSS bundle.
+- **CSS-only responsiveness** (no JS): sidebar is a horizontal scroll bar on
+  narrow screens and a sticky vertical rail at ≥860px (RTL-aware via grid).
+- **Foundation only.** Sidebar/dashboard link to `/admin/articles`,
+  `/admin/users`, etc. — those routes are intentionally not built yet (Tasks D
+  & F) and 404 gracefully until then. DB untouched (read-only); LegacyBridge
+  untouched; local compiled Tailwind only, zero external requests.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all 9 new/edited PHP files.
+- Admin dashboard renders through `layouts/admin` (sidebar active state, stat
+  value `1,234`, user chip, CSRF logout, section cards) — no warnings/fatals.
+- Router integration test with a stubbed container: `/admin` →
+  `AdminController::dashboard` through the `[AuthMiddleware, gate.admin]`
+  pipeline; `/{title}` still resolves to `ArticleController::show`;
+  `/admin/articles` (not yet built) 404s; `/search`, `/category/{id}`, `/`
+  all resolve correctly — confirming route precedence and middleware-id
+  resolution.
+
+### Next (Task D)
+Admin Panel — Article Management UI (list/create/edit/publish under
+`/admin/articles`, using a write-capable repository path).

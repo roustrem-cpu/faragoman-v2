@@ -24,4 +24,14 @@ abstract class Controller
     {
         return Response::html($this->view->render($template, $data), $status);
     }
+
+    /**
+     * Render a view inside a specific layout (e.g. the admin shell).
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function renderWith(string $layout, string $template, array $data = [], int $status = 200): Response
+    {
+        return Response::html($this->view->render($template, $data, $layout), $status);
+    }
 }

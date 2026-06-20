@@ -372,3 +372,51 @@
 .search-form__input { flex: 1 1 16rem; }
 .search-form .btn { flex: 0 0 auto; }
 @media (min-width: 640px) { .listing__title { font-size: 2.2rem; } }
+
+
+/* ==========================================================================
+   Admin panel shell — glass sidebar, sticky topbar, dashboard cards.
+   Plain CSS, local; appended so it ships in the compiled bundle and survives
+   a future `npm run build`.
+   ========================================================================== */
+.admin-body { min-height: 100vh; }
+.admin-shell { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+
+.admin-sidebar { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; background: linear-gradient(180deg, rgba(20,27,51,.72), rgba(13,18,38,.6)); border-bottom: 1px solid var(--border); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); }
+.admin-sidebar__brand { display: flex; align-items: center; gap: .6rem; }
+.admin-sidebar__brandtext { display: flex; flex-direction: column; line-height: 1.2; }
+.admin-sidebar__brandname { font-weight: 800; }
+.admin-sidebar__brandsub { font-size: .72rem; color: var(--muted); }
+
+.admin-nav { display: flex; gap: .35rem; overflow-x: auto; scrollbar-width: thin; }
+.admin-nav__link { display: inline-flex; align-items: center; gap: .55rem; padding: .6rem .8rem; border-radius: 12px; color: var(--muted); white-space: nowrap; transition: background .15s ease, color .15s ease; }
+.admin-nav__link:hover { background: rgba(255,255,255,.06); color: var(--text); }
+.admin-nav__link.is-active { color: #fff; background-image: linear-gradient(145deg, #6d8bff, #4861e6); box-shadow: 0 10px 30px rgba(91,124,250,.35); }
+.admin-nav__dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; opacity: .6; flex: 0 0 auto; }
+.admin-sidebar__back { color: var(--muted); }
+
+.admin-main { display: flex; flex-direction: column; min-width: 0; }
+.admin-topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1.1rem; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(7,11,24,.78), rgba(7,11,24,.4)); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 20; }
+.admin-topbar__title { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.admin-topbar__actions { display: flex; align-items: center; gap: .5rem; }
+
+.admin-content { padding: 1.1rem; }
+.admin-section__title { font-size: 1.15rem; font-weight: 700; margin: 0 0 1rem; }
+.admin-statgrid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); margin-bottom: 1.75rem; }
+.stat-card { display: flex; flex-direction: column; gap: .25rem; }
+.stat-card__value { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+.stat-card__label { color: var(--muted); font-size: .85rem; }
+
+.admin-cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); }
+.admin-card { display: flex; flex-direction: column; gap: .4rem; transition: transform .2s ease, box-shadow .2s ease; }
+.admin-card:hover { transform: translateY(-4px); box-shadow: 0 22px 60px rgba(8,12,28,.5); }
+.admin-card__title { font-weight: 700; font-size: 1.05rem; }
+.admin-card__desc { color: var(--muted); font-size: .85rem; }
+
+@media (min-width: 860px) {
+  .admin-shell { grid-template-columns: 264px 1fr; }
+  .admin-sidebar { position: sticky; top: 0; height: 100vh; border-bottom: 0; border-inline-end: 1px solid var(--border); overflow-y: auto; }
+  .admin-nav { flex-direction: column; overflow: visible; }
+  .admin-content { padding: 1.75rem; }
+}
+@media (prefers-reduced-motion: reduce) { .admin-card { transition: none; } }

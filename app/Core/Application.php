@@ -65,6 +65,11 @@ final class Application
         $c->singleton(RoleMiddleware::class, static fn (Container $c): RoleMiddleware => new RoleMiddleware($c->get(AuthService::class), $c->get(Rbac::class)));
         $c->singleton(CsrfMiddleware::class, static fn (): CsrfMiddleware => new CsrfMiddleware());
 
+        // Configured RBAC gate for the admin panel. The Router resolves route
+        // middleware by container id, so this exposes a ready-to-use instance
+        // of RoleMiddleware pre-bound to the `admin.access` permission.
+        $c->singleton('gate.admin', static fn (Container $c): RoleMiddleware => $c->get(RoleMiddleware::class)->require('admin.access'));
+
         // Router
         $c->singleton(Router::class, static fn (Container $c): Router => new Router($c));
 
@@ -82,6 +87,7 @@ final class Application
         return [
             \App\Controllers\HomeController::class => static fn (Container $c) => new \App\Controllers\HomeController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class), $c->get(\App\Services\StoryService::class)),
             \App\Controllers\ArticleController::class => static fn (Container $c) => new \App\Controllers\ArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
+            \App\Controllers\AdminController::class => static fn (Container $c) => new \App\Controllers\AdminController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\CategoryController::class => static fn (Container $c) => new \App\Controllers\CategoryController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AuthorController::class => static fn (Container $c) => new \App\Controllers\AuthorController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\SearchController::class => static fn (Container $c) => new \App\Controllers\SearchController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),

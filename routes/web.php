@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AdminController;
 use App\Controllers\ArticleController;
 use App\Controllers\AuthController;
 use App\Controllers\AuthorController;
@@ -45,6 +46,10 @@ return static function (Router $router): void {
     $router->get('/feed/rss', [FeedController::class, 'rss']);
     $router->get('/feed.json', [FeedController::class, 'json']);
     $router->get('/feed.txt', [FeedController::class, 'text']);
+
+    // Admin panel (Phase 3 foundation). Gated by auth + the dynamic RBAC
+    // permission `admin.access`, resolved via the `gate.admin` middleware.
+    $router->get('/admin', [AdminController::class, 'dashboard'], [AuthMiddleware::class, 'gate.admin']);
 
     // Content discovery (Phase 3): search, category and author listings.
     // Registered BEFORE the /{title} catch-all so they always win.
