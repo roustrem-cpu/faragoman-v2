@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AdminArticleController;
 use App\Controllers\AdminController;
 use App\Controllers\ArticleController;
 use App\Controllers\AuthController;
@@ -50,6 +51,17 @@ return static function (Router $router): void {
     // Admin panel (Phase 3 foundation). Gated by auth + the dynamic RBAC
     // permission `admin.access`, resolved via the `gate.admin` middleware.
     $router->get('/admin', [AdminController::class, 'dashboard'], [AuthMiddleware::class, 'gate.admin']);
+
+    // Admin: article management (Task D). Reads gated by auth + admin.access;
+    // writes additionally pass through CSRF protection.
+    $router->get('/admin/articles', [AdminArticleController::class, 'index'], [AuthMiddleware::class, 'gate.admin']);
+    $router->get('/admin/articles/create', [AdminArticleController::class, 'create'], [AuthMiddleware::class, 'gate.admin']);
+    $router->post('/admin/articles', [AdminArticleController::class, 'store'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
+    $router->get('/admin/articles/{id}/edit', [AdminArticleController::class, 'edit'], [AuthMiddleware::class, 'gate.admin']);
+    $router->post('/admin/articles/{id}', [AdminArticleController::class, 'update'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
+    $router->post('/admin/articles/{id}/delete', [AdminArticleController::class, 'destroy'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
+    $router->post('/admin/articles/{id}/publish', [AdminArticleController::class, 'publish'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
+    $router->post('/admin/articles/{id}/unpublish', [AdminArticleController::class, 'unpublish'], [AuthMiddleware::class, 'gate.admin', CsrfMiddleware::class]);
 
     // Content discovery (Phase 3): search, category and author listings.
     // Registered BEFORE the /{title} catch-all so they always win.

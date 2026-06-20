@@ -22,6 +22,8 @@ final class Article
         public readonly ?string $createdAt = null,
         public readonly ?string $authorName = null,
         public readonly ?string $categoryName = null,
+        public readonly ?string $imageUrl = null,
+        public readonly ?string $postTag = null,
     ) {
     }
 
@@ -43,6 +45,8 @@ final class Article
             createdAt: $row['created_at'] ?? null,
             authorName: $row['user_display_name'] ?? null,
             categoryName: $row['category_name'] ?? null,
+            imageUrl: $row['image_url'] ?? null,
+            postTag: $row['post_tag'] ?? null,
         );
     }
 }

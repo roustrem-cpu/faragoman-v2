@@ -420,3 +420,48 @@
   .admin-content { padding: 1.75rem; }
 }
 @media (prefers-reduced-motion: reduce) { .admin-card { transition: none; } }
+
+
+/* ==========================================================================
+   Admin — article management: toolbar, table, status tags, forms.
+   Plain CSS, local; appended to source and compiled bundle.
+   ========================================================================== */
+.admin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.admin-toolbar__count { color: var(--muted); font-size: .85rem; margin: 0; }
+
+.btn-sm { padding: .4rem .7rem; font-size: .8rem; border-radius: 10px; }
+.btn-danger { background-image: linear-gradient(145deg, #f43f5e, #be123c); color: #fff; }
+.btn-danger:hover { filter: brightness(1.07); }
+
+.alert-success { background: rgba(34,197,94,.12); color: #86efac; border: 1px solid rgba(34,197,94,.28); }
+.field__error { color: #fda4af; font-size: .78rem; }
+.field__hint { color: var(--muted); font-size: .75rem; }
+
+.admin-tablewrap { padding: 0; overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 640px; }
+.admin-table thead th { text-align: right; font-weight: 600; color: var(--muted); padding: .9rem 1rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.admin-table tbody td { padding: .8rem 1rem; border-bottom: 1px solid rgba(124,156,255,.08); vertical-align: middle; }
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table tbody tr:hover { background: rgba(255,255,255,.03); }
+.admin-table__title { font-weight: 600; max-width: 22rem; }
+.admin-table__title a { color: var(--text); }
+.admin-table__title a:hover { color: #7c9cff; }
+.admin-table__actions-h { text-align: left; }
+
+.admin-actions { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-end; }
+.admin-actions form { display: inline; margin: 0; }
+
+.tag { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .74rem; font-weight: 600; }
+.tag--published { background: rgba(34,197,94,.14); color: #86efac; }
+.tag--pending   { background: rgba(234,179,8,.14); color: #fde047; }
+.tag--approved  { background: rgba(34,211,238,.14); color: #67e8f9; }
+.tag--rejected  { background: rgba(244,63,94,.14); color: #fda4af; }
+
+.admin-formwrap { max-width: 52rem; }
+.admin-form { gap: 1.1rem; }
+.admin-form__row { display: grid; gap: 1.1rem; grid-template-columns: 1fr; }
+.admin-form__content { min-height: 16rem; font-family: inherit; line-height: 1.9; resize: vertical; }
+.admin-form__actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: .3rem; }
+textarea.field__input { font-family: inherit; }
+select.field__input { appearance: none; cursor: pointer; }
+@media (min-width: 720px) { .admin-form__row { grid-template-columns: 1fr 1fr; } }

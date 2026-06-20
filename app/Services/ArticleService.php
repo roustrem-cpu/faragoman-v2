@@ -157,6 +157,89 @@ final class ArticleService
         return $this->pageCount($total, $perPage);
     }
 
+    // ----------------------------------------------------------------------
+    // Admin management (Task D). Listings read all statuses; writes invalidate
+    // the filesystem cache so public listings/counts update immediately.
+    // ----------------------------------------------------------------------
+
+    /**
+     * @return array<int, Article>
+     */
+    public function adminList(int $page = 1, int $perPage = 20): array
+    {
+        return $this->articles->adminList($perPage, $this->offset($page, $perPage));
+    }
+
+    public function adminTotalPages(int $perPage = 20): int
+    {
+        $total = $this->cache->remember(
+            'feed:admin:count',
+            self::FEED_CACHE_TTL,
+            fn (): int => $this->articles->adminCount(),
+        );
+
+        return $this->pageCount($total, $perPage);
+    }
+
+    /**
+     * @return array<int, array{id:int,name:string}>
+     */
+    public function categories(): array
+    {
+        return $this->articles->allCategories();
+    }
+
+    /**
+     * @param array{category_id:int,title:string,post_tag:string,content:string,excerpt:string,image_url:string,status:string} $data
+     */
+    public function createArticle(array $data, int $userId, string $authorName): int
+    {
+        $id = $this->articles->create([
+            'user_id'     => $userId,
+            'author_name' => $authorName,
+            'category_id' => $data['category_id'],
+            'title'       => $data['title'],
+            'post_tag'    => $data['post_tag'],
+            'content'     => $data['content'],
+            'excerpt'     => $data['excerpt'],
+            'image_url'   => $data['image_url'],
+            'status'      => $data['status'],
+        ]);
+
+        $this->cache->flush();
+
+        return $id;
+    }
+
+    /**
+     * @param array{category_id:int,title:string,post_tag:string,content:string,excerpt:string,image_url:string} $data
+     */
+    public function updateArticle(int $id, array $data): void
+    {
+        $this->articles->update($id, [
+            'category_id' => $data['category_id'],
+            'title'       => $data['title'],
+            'post_tag'    => $data['post_tag'],
+            'content'     => $data['content'],
+            'excerpt'     => $data['excerpt'],
+            'image_url'   => $data['image_url'],
+        ]);
+
+        $this->cache->flush();
+    }
+
+    public function deleteArticle(int $id): void
+    {
+        $this->articles->delete($id);
+        $this->cache->flush();
+    }
+
+    public function setStatus(int $id, string $status): void
+    {
+        $this->articles->setStatus($id, $status);
+        $this->cache->flush();
+    }
+
     private function offset(int $page, int $perPage): int
     {
         return (max(1, $page) - 1) * $perPage;

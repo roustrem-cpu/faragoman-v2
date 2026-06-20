@@ -191,3 +191,81 @@ plumbing that Tasks D–F will build their management UIs on top of.
 ### Next (Task D)
 Admin Panel — Article Management UI (list/create/edit/publish under
 `/admin/articles`, using a write-capable repository path).
+
+
+---
+
+## Task D — Admin Panel: Article Management UI
+_Date: 2026-06-20 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Full CRUD + publish/unpublish for articles under `/admin/articles`, writing to
+the existing production `articles` table with zero schema changes.
+
+### Files Modified
+- **NEW** `app/Controllers/AdminArticleController.php` — index / create / store /
+  edit / update / destroy / publish / unpublish. Inline validation, flash
+  messages via `?m=` redirect param, 404 for missing ids.
+- **NEW** `resources/views/admin/articles/index.php` — management table (title,
+  author, category, status tag, reads, row actions) + pagination.
+- **NEW** `resources/views/admin/articles/form.php` — shared create/edit form
+  (title, category, status, excerpt, content, image URL, tags) with error +
+  old-input repopulation.
+- **EDIT** `app/Models/Article.php` — added `imageUrl` + `postTag` (additive,
+  read in `fromRow`) so the edit form can prefill them.
+- **EDIT** `app/Repositories/ArticleRepository.php` — `adminList`/`adminCount`
+  (all statuses), `allCategories`, and writes `create`/`update`/`delete`/
+  `setStatus`.
+- **EDIT** `app/Services/ArticleService.php` — admin list/pagination,
+  `categories()`, and `createArticle`/`updateArticle`/`deleteArticle`/
+  `setStatus` (each flushes the cache).
+- **EDIT** `app/Support/Cache.php` — added `flush()` to clear all cache files
+  after a mutation.
+- **EDIT** `app/Core/Application.php` — `AdminArticleController` DI binding.
+- **EDIT** `routes/web.php` — 8 routes under `/admin/articles`
+  (reads: `[AuthMiddleware, gate.admin]`; writes also add `CsrfMiddleware`).
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — admin
+  toolbar, table, status tags, form styles, `.btn-sm`/`.btn-danger`/
+  `.alert-success` (plain CSS, both files).
+
+### Architectural Decisions
+- **Legacy-faithful writes (CRITICAL).** The `articles` table is NOT defined in
+  `database/schema.sql` (that file only adds new RBAC/stories tables). I
+  recovered the real column set from the legacy `project` repo
+  (`public_html/index.php`): INSERT uses
+  `(user_id, author_name, category_id, title, post_tag, content, excerpt,
+  image_url, status, key_point_1, key_point_2, key_point_3, is_scrolly,
+  scrolly_data)`. Our INSERT mirrors it exactly (scrollytelling/key-point
+  fields default to ''/0) so every NOT NULL column is satisfied. UPDATE only
+  touches editable fields and deliberately leaves key_point_*/is_scrolly/
+  scrolly_data/author_name intact → no data loss.
+- **Status whitelist = `published|pending|approved|rejected`** — the exact
+  values used by the legacy code (admin insert → `published`). `draft` is
+  deliberately NOT used to avoid an out-of-range value on the production column.
+  Unpublish maps to `pending`.
+- **Access control** reuses the Task C `gate.admin` (admin.access) for the whole
+  section; writes add CSRF. Finer content permissions can layer in later.
+- **Cache invalidation:** every write calls `Cache::flush()` so public
+  listings/counts refresh immediately (no daemon; shared-hosting friendly).
+- **Image upload deferred to Task H** — the form currently takes an image URL/
+  path (clearly labelled). DB untouched; LegacyBridge untouched; local
+  compiled Tailwind only.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all 9 new/edited PHP files.
+- Static SQL arity check: INSERT 14 placeholders ↔ 14 bind values in the exact
+  legacy column order; UPDATE 7 placeholders.
+- Render tests (real View + admin layout): article list (status tags, edit/
+  publish/unpublish/delete forms with CSRF, pagination, success flash); create
+  form; edit form (prefilled title/category/image/tags); validation-error form
+  (messages + old input retained).
+- Reflection coverage: every routed controller method exists; service +
+  repository expose all new methods; `Cache::flush()` present.
+- Router integration test: all 8 `/admin/articles` routes resolve to the right
+  controller/method with correct GET/POST + id params; `/admin` and the
+  `/{title}` catch-all still resolve correctly.
+- Note: no MySQL in the sandbox, so write queries were validated structurally
+  (arity + legacy-column parity) rather than executed.
+
+### Next (Task E)
+Dynamic RBAC Management UI (assign/revoke roles & permissions).

@@ -32,7 +32,7 @@ original `project` repository into the modernized `faragoman-v2` architecture.
 
 ## Phase 3 — Remaining work (next iterations)
 - [x] Article detail page + category/author/search pages on the new router
-- [~] Admin panel — foundation/layout/routing done (Task C); management UIs pending (Tasks D, F)
+- [~] Admin panel — foundation (Task C) + article management (Task D) done; users/comments/stories pending (Task F)
 - [ ] Full dynamic RBAC management UI (assign/revoke permissions per admin)
 - [ ] Profile / wiki pages ported to the new architecture
 - [ ] Image upload pipeline for stories (file storage + optimization)

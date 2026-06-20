@@ -88,6 +88,7 @@ final class Application
             \App\Controllers\HomeController::class => static fn (Container $c) => new \App\Controllers\HomeController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class), $c->get(\App\Services\StoryService::class)),
             \App\Controllers\ArticleController::class => static fn (Container $c) => new \App\Controllers\ArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AdminController::class => static fn (Container $c) => new \App\Controllers\AdminController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
+            \App\Controllers\AdminArticleController::class => static fn (Container $c) => new \App\Controllers\AdminArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\CategoryController::class => static fn (Container $c) => new \App\Controllers\CategoryController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AuthorController::class => static fn (Container $c) => new \App\Controllers\AuthorController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\SearchController::class => static fn (Container $c) => new \App\Controllers\SearchController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),

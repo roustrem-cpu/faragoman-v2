@@ -196,4 +196,94 @@ final class ArticleRepository
     {
         return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
+
+    // ----------------------------------------------------------------------
+    // Admin management (Phase 3, Task D). Writes mirror the legacy `articles`
+    // columns exactly for 100% backward compatibility with the production DB.
+    // ----------------------------------------------------------------------
+
+    /**
+     * All articles (any status) for the admin list.
+     *
+     * @return array<int, Article>
+     */
+    public function adminList(int $limit = 20, int $offset = 0): array
+    {
+        $rows = $this->db->select(
+            'SELECT a.*, u.display_name AS user_display_name, c.name AS category_name
+             FROM articles a
+             LEFT JOIN users u ON u.id = a.user_id
+             LEFT JOIN categories c ON c.id = a.category_id
+             ORDER BY a.id DESC
+             LIMIT ? OFFSET ?',
+            [$limit, $offset],
+        );
+
+        return array_map(static fn (array $r): Article => Article::fromRow($r), $rows);
+    }
+
+    public function adminCount(): int
+    {
+        $row = $this->db->selectOne('SELECT COUNT(*) AS total FROM articles');
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return array<int, array{id:int,name:string}>
+     */
+    public function allCategories(): array
+    {
+        return $this->db->select('SELECT id, name FROM categories ORDER BY name ASC');
+    }
+
+    /**
+     * Insert a new article. Mirrors the legacy INSERT column set so every
+     * NOT NULL column is satisfied; scrollytelling fields default to empty.
+     *
+     * @param array{user_id:int,author_name:string,category_id:int,title:string,post_tag:string,content:string,excerpt:string,image_url:string,status:string} $a
+     */
+    public function create(array $a): int
+    {
+        $this->db->statement(
+            'INSERT INTO articles
+                (user_id, author_name, category_id, title, post_tag, content, excerpt, image_url, status,
+                 key_point_1, key_point_2, key_point_3, is_scrolly, scrolly_data)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                $a['user_id'], $a['author_name'], $a['category_id'], $a['title'], $a['post_tag'],
+                $a['content'], $a['excerpt'], $a['image_url'], $a['status'],
+                '', '', '', 0, '',
+            ],
+        );
+
+        return $this->db->lastInsertId();
+    }
+
+    /**
+     * Update editable fields. Intentionally does NOT touch key_point_*,
+     * is_scrolly, scrolly_data, author_name or status (preserved / managed
+     * elsewhere) so no existing data is lost.
+     *
+     * @param array{category_id:int,title:string,post_tag:string,content:string,excerpt:string,image_url:string} $a
+     */
+    public function update(int $id, array $a): void
+    {
+        $this->db->statement(
+            'UPDATE articles
+             SET category_id = ?, title = ?, post_tag = ?, content = ?, excerpt = ?, image_url = ?
+             WHERE id = ?',
+            [$a['category_id'], $a['title'], $a['post_tag'], $a['content'], $a['excerpt'], $a['image_url'], $id],
+        );
+    }
+
+    public function delete(int $id): void
+    {
+        $this->db->statement('DELETE FROM articles WHERE id = ?', [$id]);
+    }
+
+    public function setStatus(int $id, string $status): void
+    {
+        $this->db->statement('UPDATE articles SET status = ? WHERE id = ?', [$status, $id]);
+    }
 }

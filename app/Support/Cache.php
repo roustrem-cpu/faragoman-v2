@@ -71,6 +71,17 @@ final class Cache
         @unlink($this->path($key));
     }
 
+    /**
+     * Delete every cached entry. Called after content mutations so listings and
+     * counts reflect the change immediately (no daemon / no external store).
+     */
+    public function flush(): void
+    {
+        foreach (glob($this->directory . '/*.cache') ?: [] as $file) {
+            @unlink($file);
+        }
+    }
+
     private function path(string $key): string
     {
         return $this->directory . '/' . hash('xxh128', $key) . '.cache';
