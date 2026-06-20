@@ -148,3 +148,63 @@ faragoman-v2/
 ---
 
 © فراگمان — تمامی حقوق محفوظ است.
+
+
+---
+
+## Stories
+
+The historically-disabled **Stories** feature is re-enabled on the new architecture.
+
+- **Database**: `database/schema.sql` creates a `stories` table with `IF NOT EXISTS`
+  (columns `id, title, image_url, link_url, display_order, is_active, created_at`).
+  Existing databases that already have a `stories` table are **left untouched**.
+- **Front-end**: a premium pseudo-3D ring bar renders on the home page (server-side,
+  works without JS) and an immersive full-screen viewer (vanilla JS in
+  `public/assets/js/stories.js`, zero external dependencies) plays through them with
+  progress bars, keyboard and tap navigation, and respects `prefers-reduced-motion`.
+- **API**:
+  - `GET  /stories`             — public JSON list consumed by the viewer.
+  - `POST /stories`             — create (requires `stories.manage`, CSRF + auth).
+  - `POST /stories/{id}/delete` — delete (requires `stories.manage`, CSRF + auth).
+- **Resilience**: if the `stories` table is missing, the home page still renders —
+  the service returns an empty list instead of throwing.
+
+## Syndication (RSS & CLI feeds)
+
+Latest published content is exposed to readers and machines with **no external services**:
+
+| URL          | Format                         | Audience                         |
+|--------------|--------------------------------|----------------------------------|
+| `/feed`      | RSS 2.0 (UA-negotiated)        | browsers & feed readers          |
+| `/feed/rss`  | RSS 2.0 (forced)               | RSS clients                      |
+| `/feed.json` | JSON Feed 1.1                  | modern feed clients              |
+| `/feed.txt`  | plain text                     | CLI / terminal (curl, wget, ...) |
+
+`/feed` performs **content negotiation**: a request from a terminal client
+(`curl`, `wget`, `httpie`, `lynx`, `w3m`, ...) automatically receives the lightweight
+plain-text feed, while browsers and feed readers receive RSS - one canonical URL for
+both humans-in-a-shell and machines.
+
+```bash
+curl -s https://your-domain.tld/feed        # plain text (auto-negotiated)
+curl -s https://your-domain.tld/feed.json   # JSON Feed
+```
+
+## Backward compatibility: Store & Chat
+
+The **Store** and **Chat** modules are operational and must remain untouched. They
+expect a global mysqli handle named `$conn` (from the legacy `db_config.php`).
+`App\Support\LegacyBridge` exposes the **same** connection managed by the new
+`Database` layer as the global `$conn`, so the original module code runs verbatim with
+a single source of credentials (`config/database.php`).
+
+To serve them, drop the untouched modules into:
+
+```
+<project root>/legacy/store/index.php
+<project root>/legacy/chat/index.php
+```
+
+Requests to `/store` and `/chat` are then served by the original code before the new
+router runs. Until those files are present, the mount point is a safe no-op.
