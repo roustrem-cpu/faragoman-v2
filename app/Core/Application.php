@@ -53,10 +53,12 @@ final class Application
         // Repositories
         $c->singleton(UserRepository::class, static fn (Container $c): UserRepository => new UserRepository($c->get(Database::class)));
         $c->singleton(ArticleRepository::class, static fn (Container $c): ArticleRepository => new ArticleRepository($c->get(Database::class)));
+        $c->singleton(\App\Repositories\StoryRepository::class, static fn (Container $c): \App\Repositories\StoryRepository => new \App\Repositories\StoryRepository($c->get(Database::class)));
 
         // Services
         $c->singleton(AuthService::class, static fn (Container $c): AuthService => new AuthService($c->get(UserRepository::class)));
         $c->singleton(ArticleService::class, static fn (Container $c): ArticleService => new ArticleService($c->get(ArticleRepository::class), $c->get(Cache::class)));
+        $c->singleton(\App\Services\StoryService::class, static fn (Container $c): \App\Services\StoryService => new \App\Services\StoryService($c->get(\App\Repositories\StoryRepository::class), $c->get(Cache::class)));
 
         // Middleware
         $c->singleton(AuthMiddleware::class, static fn (Container $c): AuthMiddleware => new AuthMiddleware($c->get(AuthService::class)));
@@ -78,8 +80,10 @@ final class Application
     private function controllerBindings(): array
     {
         return [
-            \App\Controllers\HomeController::class => static fn (Container $c) => new \App\Controllers\HomeController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
+            \App\Controllers\HomeController::class => static fn (Container $c) => new \App\Controllers\HomeController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class), $c->get(\App\Services\StoryService::class)),
             \App\Controllers\AuthController::class => static fn (Container $c) => new \App\Controllers\AuthController($c->get(View::class), $c->get(AuthService::class)),
+            \App\Controllers\StoryController::class => static fn (Container $c) => new \App\Controllers\StoryController($c->get(\App\Services\StoryService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
+            \App\Controllers\FeedController::class => static fn (Container $c) => new \App\Controllers\FeedController($c->get(ArticleService::class)),
         ];
     }
 

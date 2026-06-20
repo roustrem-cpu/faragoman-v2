@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Controllers\AuthController;
+use App\Controllers\FeedController;
 use App\Controllers\HomeController;
+use App\Controllers\StoryController;
 use App\Core\Router;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
@@ -29,6 +31,17 @@ return static function (Router $router): void {
     $router->post('/login', [AuthController::class, 'login'], [CsrfMiddleware::class]);
     $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
-    // Further routes (article, profile, wiki, admin, stories…) are added
-    // incrementally in later phases of the rewrite.
+    // Stories (re-enabled feature) ---------------------------------------
+    $router->get('/stories', [StoryController::class, 'index']);
+    $router->post('/stories', [StoryController::class, 'store'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->post('/stories/{id}/delete', [StoryController::class, 'destroy'], [AuthMiddleware::class, CsrfMiddleware::class]);
+
+    // Syndication: RSS, JSON Feed and a CLI/terminal-friendly plain-text feed.
+    $router->get('/feed', [FeedController::class, 'index']);
+    $router->get('/feed/rss', [FeedController::class, 'rss']);
+    $router->get('/feed.json', [FeedController::class, 'json']);
+    $router->get('/feed.txt', [FeedController::class, 'text']);
+
+    // Further routes (article, profile, wiki, admin…) are added incrementally
+    // in later phases of the rewrite.
 };

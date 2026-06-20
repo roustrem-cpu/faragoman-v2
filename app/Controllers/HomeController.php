@@ -9,6 +9,7 @@ use App\Core\Response;
 use App\Core\View;
 use App\Services\ArticleService;
 use App\Services\AuthService;
+use App\Services\StoryService;
 
 final class HomeController extends Controller
 {
@@ -16,6 +17,7 @@ final class HomeController extends Controller
         View $view,
         private ArticleService $articles,
         private AuthService $auth,
+        private StoryService $stories,
     ) {
         parent::__construct($view);
     }
@@ -25,10 +27,11 @@ final class HomeController extends Controller
         $page = (int) $request->query('page_num', 1);
 
         return $this->render('home', [
-            'title'      => 'فراگمان — خانه',
-            'articles'   => $this->articles->homeFeed($page),
-            'page'       => $page,
-            'totalPages' => $this->articles->totalPages(),
+            'title'       => 'فراگمان — خانه',
+            'articles'    => $this->articles->homeFeed($page),
+            'stories'     => $this->stories->active(),
+            'page'        => $page,
+            'totalPages'  => $this->articles->totalPages(),
             'currentUser' => $this->auth->userModel(),
         ]);
     }

@@ -1,8 +1,11 @@
 <?php
 /** @var array<int, \App\Models\Article> $articles */
+/** @var array<int, \App\Models\Story> $stories */
 /** @var int $page */
 /** @var int $totalPages */
 ?>
+<?php require __DIR__ . '/partials/stories.php'; ?>
+
 <section class="hero">
     <div class="hero-glow" aria-hidden="true"></div>
     <h1 class="hero-title">روایت‌هایی که می‌مانند</h1>

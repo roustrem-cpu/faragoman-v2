@@ -12,8 +12,10 @@ declare(strict_types=1);
 */
 
 use App\Core\Application;
+use App\Core\Database;
 use App\Core\Request;
 use App\Support\Autoloader;
+use App\Support\LegacyBridge;
 
 $basePath = dirname(__DIR__);
 
@@ -38,7 +40,30 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 4. Handle the request.
+// 4. Bootstrap the application kernel.
 $app = new Application($basePath, $config);
-$response = $app->handle(Request::capture());
+
+// 4b. Legacy module mount point (Store & Chat) — served untouched.
+//     The original modules expect a global mysqli `$conn`; LegacyBridge exposes
+//     the SAME connection managed by the new Database layer, so the legacy code
+//     runs verbatim with no edits and a single source of DB credentials.
+//     Drop the untouched modules in:  <basePath>/legacy/store  and  <basePath>/legacy/chat
+//     This block is a safe no-op until those files are present.
+$request = Request::capture();
+$path = $request->path();
+
+if (LegacyBridge::isLegacyPath($path)) {
+    $module = str_starts_with(ltrim($path, '/'), 'chat') ? 'chat' : 'store';
+    $legacyEntry = $basePath . '/legacy/' . $module . '/index.php';
+
+    if (is_file($legacyEntry)) {
+        LegacyBridge::boot($app->container()->get(Database::class));
+        $conn = $GLOBALS['conn']; // legacy scripts reference $conn in local scope
+        require $legacyEntry;
+        exit;
+    }
+}
+
+// 5. Handle the request through the router.
+$response = $app->handle($request);
 $response->send();

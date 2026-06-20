@@ -99,4 +99,24 @@ INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id FROM `roles` r JOIN `permissions` p
 WHERE r.slug = 'user' AND p.slug IN ('content.view');
 
+-- ============================================================================
+--  Stories (ADDITIVE) — re-enables the historically disabled Stories feature.
+--  Created only if it does not already exist, so production databases that
+--  already have a `stories` table are left completely untouched. The column
+--  set matches the legacy table (id, title, image_url, link_url,
+--  display_order, created_at) and adds an OPTIONAL `is_active` flag that the
+--  application treats as "active" when absent on older databases.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `stories` (
+  `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `title`         VARCHAR(255) NOT NULL,
+  `image_url`     VARCHAR(512) NOT NULL,
+  `link_url`      VARCHAR(512) NULL DEFAULT NULL,
+  `display_order` INT          NOT NULL DEFAULT 0,
+  `is_active`     TINYINT(1)   NOT NULL DEFAULT 1,
+  `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `stories_order_idx` (`display_order`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

@@ -170,3 +170,152 @@
   .error-text { color: var(--muted); @apply mb-5; }
   .error-trace { @apply text-left text-xs bg-black/40 rounded-lg p-3 overflow-auto my-4 max-h-64; direction: ltr; }
 }
+
+
+/* ==========================================================================
+   Stories — premium pseudo-3D ring bar + immersive viewer (local, no deps)
+   Appended as plain CSS so it ships in the compiled bundle and also survives
+   a future `npm run build` (Tailwind passes raw CSS in the input through).
+   ========================================================================== */
+.stories { margin: 0 0 1.5rem; }
+.stories-rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem 0.25rem 0.75rem;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.stories-rail::-webkit-scrollbar { height: 6px; }
+.stories-rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+.story-ring {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 80px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  scroll-snap-align: start;
+  color: var(--text);
+  font: inherit;
+}
+.story-ring__halo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: conic-gradient(from 210deg, #5b7cfa, #22d3ee, #a855f7, #5b7cfa);
+  box-shadow: 0 6px 18px rgba(91, 124, 250, 0.35), inset 0 0 0 1px rgba(255,255,255,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.story-ring__frame {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: var(--bg);
+  padding: 3px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+}
+/* The halo wraps the frame: nest visually via absolute layering */
+.story-ring__halo { position: absolute; }
+.story-ring { position: relative; }
+.story-ring__frame { position: relative; z-index: 1; margin: 4px; }
+.story-ring__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+  display: block;
+}
+.story-ring__label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  max-width: 78px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.story-ring:hover .story-ring__halo { transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 26px rgba(91,124,250,0.5); }
+.story-ring:focus-visible .story-ring__halo { outline: 2px solid #22d3ee; outline-offset: 3px; }
+
+/* Immersive viewer ---------------------------------------------------------*/
+.story-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.story-viewer.is-open { display: flex; }
+.story-viewer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 6, 18, 0.86);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+.story-viewer__stage {
+  position: relative;
+  width: min(420px, 94vw);
+  height: min(86vh, 760px);
+  border-radius: 22px;
+  overflow: hidden;
+  background: #05060f;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06);
+  transform: translateZ(0);
+  animation: storyPop 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes storyPop { from { opacity: 0; transform: scale(0.94) translateY(12px); } to { opacity: 1; transform: none; } }
+.story-viewer__bars {
+  position: absolute;
+  top: 10px; left: 12px; right: 12px;
+  display: flex;
+  gap: 5px;
+  z-index: 3;
+}
+.story-bar { flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.25); overflow: hidden; }
+.story-bar__fill { display: block; height: 100%; width: 0; background: #fff; border-radius: 999px; }
+.story-viewer__head {
+  position: absolute;
+  top: 22px; left: 14px; right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+  color: #fff;
+}
+.story-viewer__title { font-size: 0.9rem; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+.story-viewer__close { background: none; border: 0; color: #fff; font-size: 1.8rem; line-height: 1; cursor: pointer; opacity: 0.85; }
+.story-viewer__close:hover { opacity: 1; }
+.story-viewer__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.story-viewer__cta {
+  position: absolute;
+  bottom: 26px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5b7cfa, #4458e0);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(68, 88, 224, 0.5);
+}
+.story-viewer__nav { position: absolute; top: 0; bottom: 0; width: 40%; z-index: 2; background: none; border: 0; cursor: pointer; }
+.story-viewer__nav--prev { right: 0; }
+.story-viewer__nav--next { left: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .story-ring__halo, .story-viewer__stage { animation: none; transition: none; }
+}
