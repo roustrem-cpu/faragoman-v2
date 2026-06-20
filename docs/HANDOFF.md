@@ -368,3 +368,88 @@ schema changes to production.
 Admin Panel — User Management UI (list/search users, edit profile fields, ban/
 unban) under `/admin/users`, reusing `gate.admin` and the `users.manage`
 permission.
+
+---
+
+## Task F — Admin Panel: User Management UI
+_Date: 2026-06-20 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Build the back-office user administration screen under `/admin/users`: a
+searchable, paginated user list, an edit-profile form, and ban/unban controls —
+writing only to existing `users` columns (zero schema change).
+
+### Files Modified
+- **NEW** `app/Services/UserService.php` — orchestration: paginated `list()`/
+  `total()`/`totalPages()` (20/page) with optional search, plus
+  `updateProfile()` (validates email format + cross-user uniqueness) and
+  `setBanned()`.
+- **NEW** `app/Controllers/AdminUserController.php` — index (list + `?q=`
+  search + `?page_num=`), edit, update, ban, unban. Flash via `?m=`; 404 for
+  missing ids; self-ban guard.
+- **NEW** `resources/views/admin/users/index.php` — management table (user,
+  email, normalised role, active/banned tag, join date, actions) + search bar +
+  pagination (search preserved across pages).
+- **NEW** `resources/views/admin/users/form.php` — edit-profile form
+  (display_name, email, user_title, avatar_url, user_bio) with an identity card
+  showing username/role/status and a cross-link to the RBAC role-assignment
+  screen; error + old-input repopulation.
+- **EDIT** `app/Repositories/UserRepository.php` — `paginate`/`countAll` (LIKE
+  search on username/email/display_name with paired `ESCAPE '!'`),
+  `emailTakenByOther`, `updateProfile`, `setBanned` (writes confined to
+  non-privileged columns).
+- **EDIT** `app/Core/Application.php` — DI bindings for `UserService`,
+  `AdminUserController`, and a new `gate.users` middleware
+  (`RoleMiddleware->require('users.manage')`).
+- **EDIT** `routes/web.php` — 5 routes under `/admin/users*` (reads:
+  `[AuthMiddleware, gate.users]`; writes add `CsrfMiddleware`). Static segment
+  before the `{id}` patterns; whole block before the `/{title}` catch-all.
+- **EDIT** `resources/css/app.css` + `public/assets/css/app.min.css` — appended
+  `.user-search`, `.tag--banned/.tag--active`, `.user-identity*` styles (plain
+  CSS, both source and compiled bundle).
+
+### Architectural Decisions
+- **`gate.users` (permission `users.manage`).** Consistent with the Task E
+  `gate.roles` pattern: the section requires `users.manage` rather than the
+  broad `admin.access`. Per the seed, super_admin (bypass) and section_admin
+  hold it — editors/authors do not — so user administration is correctly
+  limited to admins.
+- **Profile-only writes.** `updateProfile()` touches only display_name, email,
+  user_title, user_bio and avatar_url. `username`, `password`, `role` and
+  `author_rank` are deliberately never written here: roles live in the Task E
+  RBAC UI (the form cross-links to it), passwords stay in AuthService. This
+  keeps concerns separated and the privileged columns out of this surface.
+- **Ban = the existing `is_banned` flag.** `AuthService::attempt()` already
+  rejects banned users, so toggling `is_banned` immediately blocks/restores
+  login with no other change. Self-ban is blocked (self-lockout guard); the
+  list also hides the ban button on your own row.
+- **Search is injection-safe.** User wildcards (`%`, `_`) are neutralised via a
+  paired `ESCAPE '!'`; queries are fully parameterised (same convention as the
+  Task B search). The search term is carried through pagination via the
+  `baseUrl` query string.
+- **DB untouched (additive-compatible).** Only pre-existing `users` columns are
+  read/written — no migrations, no new tables. Store/Chat LegacyBridge
+  untouched; local compiled Tailwind only, zero external requests; RTL/glass UI
+  consistent with the Task C–E admin shell.
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all new/edited PHP files (service,
+  controller, repository, Application, routes, 2 views).
+- Router integration test (stubbed container): all 5 `/admin/users*` routes
+  resolve to the correct controller/method with correct GET/POST + id params;
+  regression checks confirm `/admin/roles*`, `/admin/articles`, `/admin`, the
+  `/{title}` catch-all and `/` still resolve correctly.
+- Render smoke tests through the real `View` + `layouts/admin`: user list
+  (active + banned tags, self-row guard hiding the ban button, search bar,
+  pagination), empty search-result state, edit form (prefilled fields + RBAC
+  cross-link), and validation-error form (email error + old input retained) —
+  all render with no warnings/fatals.
+- Reflection coverage: every routed controller method exists; `UserService` and
+  the new `UserRepository` methods are all present.
+- Note: no MySQL in the sandbox, so write/search queries were validated
+  structurally (placeholder/bind arity + existing-column parity) rather than
+  executed.
+
+### Next (Task G)
+Admin Panel — Comment Moderation UI (list/approve/reject/delete comments) under
+`/admin/comments`, gated by the `comments.moderate` permission.

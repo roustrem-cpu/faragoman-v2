@@ -58,4 +58,81 @@ final class UserRepository
 
         return $this->db->lastInsertId();
     }
+
+    // -- Admin user management (Task F) ------------------------------------
+
+    /**
+     * Paginated, optionally searched user list for the admin panel. The search
+     * matches username / email / display_name; user wildcards are neutralised
+     * with a paired `ESCAPE '!'` (same convention as the Task B search).
+     *
+     * @return array<int, User>
+     */
+    public function paginate(int $limit, int $offset, string $search = ''): array
+    {
+        [$where, $params] = $this->searchClause($search);
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $rows = $this->db->select(
+            'SELECT ' . self::COLUMNS . ' FROM users' . $where . ' ORDER BY id DESC LIMIT ? OFFSET ?',
+            $params,
+        );
+
+        return array_map(static fn (array $r): User => User::fromRow($r), $rows);
+    }
+
+    public function countAll(string $search = ''): int
+    {
+        [$where, $params] = $this->searchClause($search);
+        $row = $this->db->selectOne('SELECT COUNT(*) AS c FROM users' . $where, $params);
+
+        return (int) ($row['c'] ?? 0);
+    }
+
+    public function emailTakenByOther(string $email, int $exceptId): bool
+    {
+        return $this->db->selectOne(
+            'SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1',
+            [$email, $exceptId],
+        ) !== null;
+    }
+
+    /**
+     * Update editable profile fields only. Deliberately never touches
+     * `username`, `password`, `role`, `author_rank` or `is_banned` — those are
+     * managed elsewhere (RBAC / auth) so no privileged column is changed here.
+     *
+     * @param array{display_name:string,email:string,user_title:string,user_bio:string,avatar_url:string} $f
+     */
+    public function updateProfile(int $id, array $f): void
+    {
+        $this->db->statement(
+            'UPDATE users SET display_name = ?, email = ?, user_title = ?, user_bio = ?, avatar_url = ? WHERE id = ?',
+            [$f['display_name'], $f['email'], $f['user_title'], $f['user_bio'], $f['avatar_url'], $id],
+        );
+    }
+
+    public function setBanned(int $id, bool $banned): void
+    {
+        $this->db->statement('UPDATE users SET is_banned = ? WHERE id = ?', [$banned ? 1 : 0, $id]);
+    }
+
+    /**
+     * @return array{0:string,1:array<int,mixed>} [whereSql, params]
+     */
+    private function searchClause(string $search): array
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return ['', []];
+        }
+
+        $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search) . '%';
+
+        return [
+            " WHERE username LIKE ? ESCAPE '!' OR email LIKE ? ESCAPE '!' OR display_name LIKE ? ESCAPE '!'",
+            [$like, $like, $like],
+        ];
+    }
 }

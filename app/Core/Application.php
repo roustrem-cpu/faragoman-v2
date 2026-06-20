@@ -61,6 +61,7 @@ final class Application
         $c->singleton(ArticleService::class, static fn (Container $c): ArticleService => new ArticleService($c->get(ArticleRepository::class), $c->get(Cache::class)));
         $c->singleton(\App\Services\StoryService::class, static fn (Container $c): \App\Services\StoryService => new \App\Services\StoryService($c->get(\App\Repositories\StoryRepository::class), $c->get(Cache::class)));
         $c->singleton(\App\Services\RbacService::class, static fn (Container $c): \App\Services\RbacService => new \App\Services\RbacService($c->get(\App\Repositories\RbacRepository::class)));
+        $c->singleton(\App\Services\UserService::class, static fn (Container $c): \App\Services\UserService => new \App\Services\UserService($c->get(UserRepository::class)));
 
         // Middleware
         $c->singleton(AuthMiddleware::class, static fn (Container $c): AuthMiddleware => new AuthMiddleware($c->get(AuthService::class)));
@@ -77,6 +78,10 @@ final class Application
         // rather than the broad `admin.access`. By default only the Super
         // Admin (who bypasses all checks) holds it.
         $c->singleton('gate.roles', static fn (Container $c): RoleMiddleware => $c->get(RoleMiddleware::class)->require('roles.manage'));
+
+        // Gate for the user-management section (Task F): the `users.manage`
+        // permission (held by super_admin and section_admin in the seed).
+        $c->singleton('gate.users', static fn (Container $c): RoleMiddleware => $c->get(RoleMiddleware::class)->require('users.manage'));
 
         // Router
         $c->singleton(Router::class, static fn (Container $c): Router => new Router($c));
@@ -98,6 +103,7 @@ final class Application
             \App\Controllers\AdminController::class => static fn (Container $c) => new \App\Controllers\AdminController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AdminArticleController::class => static fn (Container $c) => new \App\Controllers\AdminArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AdminRoleController::class => static fn (Container $c) => new \App\Controllers\AdminRoleController($c->get(View::class), $c->get(\App\Services\RbacService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
+            \App\Controllers\AdminUserController::class => static fn (Container $c) => new \App\Controllers\AdminUserController($c->get(View::class), $c->get(\App\Services\UserService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\CategoryController::class => static fn (Container $c) => new \App\Controllers\CategoryController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AuthorController::class => static fn (Container $c) => new \App\Controllers\AuthorController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\SearchController::class => static fn (Container $c) => new \App\Controllers\SearchController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),

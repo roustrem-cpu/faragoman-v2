@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controllers\AdminArticleController;
 use App\Controllers\AdminController;
 use App\Controllers\AdminRoleController;
+use App\Controllers\AdminUserController;
 use App\Controllers\ArticleController;
 use App\Controllers\AuthController;
 use App\Controllers\AuthorController;
@@ -80,6 +81,16 @@ return static function (Router $router): void {
     $router->post('/admin/roles/{id}/permissions', [AdminRoleController::class, 'savePermissions'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
     $router->post('/admin/roles/{id}', [AdminRoleController::class, 'update'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
     $router->post('/admin/roles/{id}/delete', [AdminRoleController::class, 'destroy'], [AuthMiddleware::class, 'gate.roles', CsrfMiddleware::class]);
+
+    // Admin: user management (Task F). List/search, edit profile, ban/unban
+    // under /admin/users. Gated by auth + the `users.manage` permission via the
+    // `gate.users` middleware; writes additionally pass through CSRF. Static
+    // segments registered before the `{id}` patterns.
+    $router->get('/admin/users', [AdminUserController::class, 'index'], [AuthMiddleware::class, 'gate.users']);
+    $router->get('/admin/users/{id}/edit', [AdminUserController::class, 'edit'], [AuthMiddleware::class, 'gate.users']);
+    $router->post('/admin/users/{id}', [AdminUserController::class, 'update'], [AuthMiddleware::class, 'gate.users', CsrfMiddleware::class]);
+    $router->post('/admin/users/{id}/ban', [AdminUserController::class, 'ban'], [AuthMiddleware::class, 'gate.users', CsrfMiddleware::class]);
+    $router->post('/admin/users/{id}/unban', [AdminUserController::class, 'unban'], [AuthMiddleware::class, 'gate.users', CsrfMiddleware::class]);
 
     // Content discovery (Phase 3): search, category and author listings.
     // Registered BEFORE the /{title} catch-all so they always win.
