@@ -14,7 +14,7 @@ $linkUrl  = (string) ($old['link_url']      ?? ($story->linkUrl      ?? ''));
 $order    = (int)    ($old['display_order'] ?? ($story->displayOrder ?? 0));
 ?>
 <section class="admin-section admin-formwrap">
-    <form class="card form admin-form" method="post" action="<?= e($formAction) ?>">
+    <form class="card form admin-form" method="post" action="<?= e($formAction) ?>" enctype="multipart/form-data">
         <?= csrf_field() ?>
 
         <div class="field">
@@ -24,10 +24,17 @@ $order    = (int)    ($old['display_order'] ?? ($story->displayOrder ?? 0));
         </div>
 
         <div class="field">
-            <label class="field__label" for="image_url">نشانی تصویر</label>
-            <input class="field__input" id="image_url" name="image_url" value="<?= e($imageUrl) ?>" placeholder="uploads/stories/…" required>
-            <span class="field__hint">آپلود تصویر در گام بعدی (Task J) اضافه می‌شود؛ فعلاً نشانی/مسیر تصویر را وارد کنید.</span>
-            <?php if (!empty($errors['image_url'])): ?><span class="field__error"><?= e($errors['image_url']) ?></span><?php endif; ?>
+            <label class="field__label" for="image_file">تصویر</label>
+            <?php if ($imageUrl !== ''): ?>
+                <div class="admin-form__preview">
+                    <img src="/<?= e(ltrim($imageUrl, '/')) ?>" alt="" loading="lazy">
+                    <span class="field__hint">تصویر فعلی — برای جایگزینی، فایل تازه‌ای انتخاب کنید.</span>
+                </div>
+            <?php endif; ?>
+            <input class="field__input" id="image_file" name="image_file" type="file" accept="image/jpeg,image/png,image/webp" <?= $isEdit ? '' : 'required' ?>>
+            <input type="hidden" name="image_url" value="<?= e($imageUrl) ?>">
+            <span class="field__hint">قالب‌های مجاز: JPEG، PNG، WEBP — حداکثر ۵ مگابایت.</span>
+            <?php if (!empty($errors['image_file'])): ?><span class="field__error"><?= e($errors['image_file']) ?></span><?php endif; ?>
         </div>
 
         <div class="admin-form__row">

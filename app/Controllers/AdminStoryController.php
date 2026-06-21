@@ -9,10 +9,12 @@ use App\Core\Response;
 use App\Core\View;
 use App\Models\Story;
 use App\Services\AuthService;
+use App\Services\ImageUploadService;
 use App\Services\StoryService;
+use RuntimeException;
 
 /**
- * Admin — Stories Management (Task H).
+ * Admin — Stories Management (Task H; image uploads added in Task J).
  *
  * List / create / edit / reorder / activate / deactivate / delete the additive
  * `stories` table under `/admin/stories`. Access is gated upstream by
@@ -22,6 +24,11 @@ use App\Services\StoryService;
  * Backward compatible: only the legacy-guaranteed columns are written for
  * create/edit; the optional `is_active` flag is toggled through the repository's
  * guarded path (a safe no-op on databases where the column was never added).
+ *
+ * Task J: the story image is now a real file upload (`image_file`), validated +
+ * stored by ImageUploadService. The resulting web-relative path is written into
+ * the SAME `image_url` column (no schema change). A new image is required when
+ * creating a story; on edit the existing image is preserved unless replaced.
  */
 final class AdminStoryController extends Controller
 {
@@ -29,6 +36,7 @@ final class AdminStoryController extends Controller
         View $view,
         private StoryService $stories,
         private AuthService $auth,
+        private ImageUploadService $uploads,
     ) {
         parent::__construct($view);
     }
@@ -53,8 +61,15 @@ final class AdminStoryController extends Controller
 
     public function store(Request $request): Response
     {
-        $data   = $this->collect($request);
+        $data = $this->collect($request);
+
+        // Image upload (required on create) — resolves $data['image_url'].
+        $uploadError = $this->applyUpload($request, $data, '');
+
         $errors = $this->validate($data);
+        if ($uploadError !== null) {
+            $errors['image_file'] = $uploadError;
+        }
 
         if ($errors !== []) {
             return $this->form(null, $data, $errors, 422);
@@ -89,8 +104,15 @@ final class AdminStoryController extends Controller
             return $this->notFound();
         }
 
-        $data   = $this->collect($request);
+        $data = $this->collect($request);
+
+        // Keep the current image unless a new file is uploaded (Task J).
+        $uploadError = $this->applyUpload($request, $data, (string) ($story->imageUrl ?? ''));
+
         $errors = $this->validate($data);
+        if ($uploadError !== null) {
+            $errors['image_file'] = $uploadError;
+        }
 
         if ($errors !== []) {
             return $this->form($story, $data, $errors, 422);
@@ -139,6 +161,31 @@ final class AdminStoryController extends Controller
     }
 
     // ------------------------------------------------------------------ //
+
+    /**
+     * Resolve image_url for this request: a freshly uploaded file wins,
+     * otherwise the supplied fallback (existing value / empty) is preserved.
+     *
+     * @param array<string, mixed> $data
+     * @return string|null validation error message, or null on success/no-upload
+     */
+    private function applyUpload(Request $request, array &$data, string $fallback): ?string
+    {
+        $data['image_url'] = $fallback;
+
+        $file = $request->file('image_file');
+        if (!$this->uploads->hasUpload($file)) {
+            return null;
+        }
+
+        try {
+            $data['image_url'] = $this->uploads->store($file, 'stories');
+
+            return null;
+        } catch (RuntimeException $e) {
+            return $e->getMessage();
+        }
+    }
 
     private function toggle(int $id, bool $active): Response
     {
@@ -215,9 +262,9 @@ final class AdminStoryController extends Controller
         }
 
         if ($data['image_url'] === '') {
-            $errors['image_url'] = 'نشانی تصویر الزامی است.';
+            $errors['image_file'] = 'انتخاب تصویر الزامی است.';
         } elseif (mb_strlen($data['image_url']) > 512) {
-            $errors['image_url'] = 'نشانی تصویر بیش از حد طولانی است.';
+            $errors['image_file'] = 'نشانی تصویر بیش از حد طولانی است.';
         }
 
         if (mb_strlen($data['link_url']) > 512) {

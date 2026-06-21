@@ -67,6 +67,12 @@ final class Application
         $c->singleton(\App\Services\CommentService::class, static fn (Container $c): \App\Services\CommentService => new \App\Services\CommentService($c->get(\App\Repositories\CommentRepository::class)));
         $c->singleton(\App\Services\WikiService::class, static fn (Container $c): \App\Services\WikiService => new \App\Services\WikiService($c->get(\App\Repositories\WikiRepository::class), $c->get(Cache::class)));
 
+        // ImageUploadService (Task J): dependency-free, secure image uploads for
+        // the admin Article/Story image fields. Files land under public/uploads;
+        // the returned web-relative path is stored in the existing image_url
+        // column (no schema change).
+        $c->singleton(\App\Services\ImageUploadService::class, static fn (): \App\Services\ImageUploadService => new \App\Services\ImageUploadService($basePath . '/public/uploads', 'uploads'));
+
         // Middleware
         $c->singleton(AuthMiddleware::class, static fn (Container $c): AuthMiddleware => new AuthMiddleware($c->get(AuthService::class)));
         $c->singleton(RoleMiddleware::class, static fn (Container $c): RoleMiddleware => new RoleMiddleware($c->get(AuthService::class), $c->get(Rbac::class)));
@@ -115,11 +121,11 @@ final class Application
             \App\Controllers\HomeController::class => static fn (Container $c) => new \App\Controllers\HomeController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class), $c->get(\App\Services\StoryService::class)),
             \App\Controllers\ArticleController::class => static fn (Container $c) => new \App\Controllers\ArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\AdminController::class => static fn (Container $c) => new \App\Controllers\AdminController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
-            \App\Controllers\AdminArticleController::class => static fn (Container $c) => new \App\Controllers\AdminArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
+            \App\Controllers\AdminArticleController::class => static fn (Container $c) => new \App\Controllers\AdminArticleController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class), $c->get(\App\Services\ImageUploadService::class)),
             \App\Controllers\AdminRoleController::class => static fn (Container $c) => new \App\Controllers\AdminRoleController($c->get(View::class), $c->get(\App\Services\RbacService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\AdminUserController::class => static fn (Container $c) => new \App\Controllers\AdminUserController($c->get(View::class), $c->get(\App\Services\UserService::class), $c->get(AuthService::class), $c->get(Rbac::class)),
             \App\Controllers\AdminCommentController::class => static fn (Container $c) => new \App\Controllers\AdminCommentController($c->get(View::class), $c->get(\App\Services\CommentService::class), $c->get(AuthService::class)),
-            \App\Controllers\AdminStoryController::class => static fn (Container $c) => new \App\Controllers\AdminStoryController($c->get(View::class), $c->get(\App\Services\StoryService::class), $c->get(AuthService::class)),
+            \App\Controllers\AdminStoryController::class => static fn (Container $c) => new \App\Controllers\AdminStoryController($c->get(View::class), $c->get(\App\Services\StoryService::class), $c->get(AuthService::class), $c->get(\App\Services\ImageUploadService::class)),
             \App\Controllers\ProfileController::class => static fn (Container $c) => new \App\Controllers\ProfileController($c->get(View::class), $c->get(\App\Services\UserService::class), $c->get(ArticleService::class), $c->get(AuthService::class)),
             \App\Controllers\WikiController::class => static fn (Container $c) => new \App\Controllers\WikiController($c->get(View::class), $c->get(\App\Services\WikiService::class), $c->get(AuthService::class)),
             \App\Controllers\CategoryController::class => static fn (Container $c) => new \App\Controllers\CategoryController($c->get(View::class), $c->get(ArticleService::class), $c->get(AuthService::class)),

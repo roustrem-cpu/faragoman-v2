@@ -743,3 +743,171 @@ routes for: a user **profile** page (`/profile` for the signed-in user,
 Image upload pipeline (storage & optimization) — wire real image uploads for the
 article and story image fields (currently URL/path inputs), saved under
 `public/uploads/…` with size/format handling, on shared hosting (no queues).
+
+---
+
+## Task J — Image Upload Pipeline
+_Date: 2026-06-21 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Replace the URL/path text inputs on the admin Article and Story forms with real
+image uploads. Files are validated and saved under `public/uploads/…`, and the
+resulting web-relative path is written into the EXISTING `image_url` column —
+zero schema change, fully backward compatible. Must run on low-resource shared
+hosting (Apache/Nginx + PHP-FPM): no GD/Imagick, no external libraries, no
+queues.
+
+### Files Modified
+- **NEW** `app/Services/ImageUploadService.php` — secure, dependency-free upload
+  service. Pipeline: (1) inspect the PHP upload error code (friendly message per
+  mode); (2) enforce a max byte size (5 MiB default, injectable); (3) detect the
+  REAL MIME type from the file bytes via `finfo` (with a `getimagesize`
+  fallback) and map it to an allowed canonical extension — JPEG / PNG / WEBP —
+  never trusting the client Content-Type; (4) generate a collision-free filename
+  (`bin2hex(random_bytes(16))` + epoch + ext); (5) create the destination dir
+  safely (`mkdir(0755, recursive)` + writability check); (6) `move_uploaded_file`
+  into `public/uploads/{bucket}/` and return e.g. `uploads/articles/ab12….jpg`.
+  Bucket names are sanitised (`[^a-z0-9_-]` stripped) so a caller can never path-
+  traverse out of `public/uploads`.
+- **EDIT** `app/Controllers/AdminArticleController.php` — constructor now also
+  receives `ImageUploadService`. New `applyUpload()` helper: a freshly uploaded
+  `image_file` wins; otherwise the fallback (existing `image_url` on edit, empty
+  on create) is preserved, so editing without choosing a new file keeps the
+  current image. Upload failures surface as an `image_file` field error and
+  re-render the form (422). Article images remain OPTIONAL.
+- **EDIT** `app/Controllers/AdminStoryController.php` — same `ImageUploadService`
+  injection + `applyUpload()`. Story images are REQUIRED on create (the file
+  input is `required`; an empty `image_url` fails validation under the
+  `image_file` key) and preserved on edit unless replaced.
+- **EDIT** `resources/views/admin/articles/form.php` — `enctype="multipart/form-data"`;
+  the image field is now `<input type="file" name="image_file" accept="image/jpeg,image/png,image/webp">`
+  with a current-image preview on edit, a format/size hint, and an `image_file`
+  error slot. A hidden `image_url` carries the current value for transparency
+  (the controller is authoritative).
+- **EDIT** `resources/views/admin/stories/form.php` — same multipart conversion;
+  the file input is `required` on create (omitted on edit so the existing image
+  can stand), with preview + error slot.
+- **EDIT** `app/Core/Application.php` — registered the `ImageUploadService`
+  singleton (`new ImageUploadService($basePath . '/public/uploads', 'uploads')`)
+  and threaded it into the `AdminArticleController` and `AdminStoryController`
+  factory closures (the container is explicit, not autowiring).
+
+### Architectural Decisions
+- **Real-byte MIME validation, not the client header.** The allow-list keys on
+  the `finfo` MIME of the actual bytes; a `.png` containing PHP is detected as
+  `text/x-php` and rejected. `getimagesize` is the fallback if `finfo` is
+  unavailable. Only JPEG/PNG/WEBP are accepted.
+- **Dependency-free + shared-hosting-safe.** No GD/Imagick/Composer packages; the
+  service uses only core PHP (`finfo`, `move_uploaded_file`, `random_bytes`,
+  `mkdir`). On-the-fly resizing/optimisation was intentionally NOT added — it
+  would require GD/Imagick which the constraints forbid; the size cap is the
+  resource guard instead. (Candidate refinement if an image extension is later
+  guaranteed on the host.)
+- **Collision-free, non-guessable names.** 16 random bytes + epoch keep names
+  unique and unpredictable; the original client filename is discarded entirely
+  (no user-controlled string ever touches the filesystem path).
+- **Path-traversal safe.** The upload bucket segment is sanitised to
+  `[a-z0-9_-]`; `'../etc'` → `etc`, `'a/b'` → `ab`, empty → `misc`, so writes
+  are always confined to `public/uploads/<bucket>/`.
+- **Backward-compatible storage.** The validated web path is stored in the
+  pre-existing `image_url` column exactly as the old URL/path strings were —
+  no migration, no dropped column. Old rows that already hold a full URL keep
+  working; the form preview renders both `/uploads/...` paths and absolute URLs.
+- **Optional vs required mirrors the data model.** Articles may have no image
+  (optional); stories are a visual ring and require one (required on create,
+  preserved on edit).
+
+### Validation Performed
+- `php -l` (PHP 8.4.21) passes on all touched files: `ImageUploadService.php`,
+  both admin controllers, `Application.php`, and both `form.php` views.
+- Unit smoke test (reflection) of `ImageUploadService`: `detectMime` correctly
+  classifies real JPEG/PNG/WEBP and rejects a PHP-payload `.png` (→ `text/x-php`,
+  not allowed); `sanitizeSegment` neutralises traversal (`../etc`→`etc`,
+  `a/b`→`ab`, ``→`misc`); `uniqueName` yields distinct names with the right
+  extension; `ensureDir` creates a writable directory; `hasUpload` returns false
+  for `null`/`UPLOAD_ERR_NO_FILE` and true for a real upload; the upload-error
+  matrix maps every `UPLOAD_ERR_*` code to a Persian message.
+- Render smoke tests through the real view templates (helpers stubbed, `E_ALL`
+  display_errors on): article create, article edit (current-image preview +
+  `image_file` error), story create (file input `required`), story edit
+  (preview + error) — all render with no warnings/notices; every form carries
+  `enctype="multipart/form-data"` and a `type="file"` input.
+- Note: `move_uploaded_file`/`is_uploaded_file` only succeed for genuine HTTP
+  uploads, so the final move step was validated structurally (guards + the
+  surrounding pipeline) rather than executed — consistent with prior tasks and
+  the no-runtime-server sandbox.
+
+### Next (Task K)
+Drop-in copy of the untouched legacy Store & Chat modules under `/legacy` so the
+already-wired `LegacyBridge` in `public/index.php` can serve them.
+
+
+---
+
+## Task K — Legacy Integration & Finalization
+_Date: 2026-06-21 • Phase 3 • Status: ✅ completed_
+
+### Goal
+Vendor the strictly-frozen legacy **Store** and **Chat** modules into
+faragoman-v2 under `legacy/store/` and `legacy/chat/` so the existing
+`LegacyBridge` (already wired in `public/index.php`) can serve them verbatim.
+`public/index.php` maps `/store*` → `legacy/store/index.php` and `/chat*` →
+`legacy/chat/index.php`, booting the shared mysqli `$conn` first — so this task
+is purely a file-placement step (no code change to the bridge).
+
+### Files Added (copied verbatim from the legacy `project` repo)
+- `legacy/store/index.php`            ← `public_html/store/index.php` (9070 B)
+- `legacy/store/css/home_cards.css`   ← `public_html/store/css/home_cards.css` (5417 B)
+- `legacy/store/css/store.css`        ← `public_html/store/css/store.css` (13048 B)
+- `legacy/store/js/home_cards.js`     ← `public_html/store/js/home_cards.js` (2865 B)
+- `legacy/store/js/store.js`          ← `public_html/store/js/store.js` (2881 B)
+- `legacy/chat/index.php`             ← `public_html/chat.php` (3020 B)
+
+### Architectural Decisions
+- **Store = the whole `store/` directory, copied byte-for-byte.** It is a self-
+  contained module (`index.php` + `css/` + `store/js/`) that computes its own
+  base path from `$_SERVER['PHP_SELF']` and loads its assets relatively, so it
+  works unmodified at `legacy/store/`. Byte sizes match the source exactly.
+- **Chat: there is NO `chat/` directory in the legacy repo.** A full recursive
+  walk of `public_html/` confirmed the only chat artefacts are: `chat.php` (the
+  web entry — a self-contained "chat temporarily disabled" notice page),
+  `chat-server/` (a Node.js realtime backend: `server.js` + a Firebase
+  `serviceAccountKey.json`), and `chat_uploads/` (runtime user-generated upload
+  storage). The `LegacyBridge` contract requires `legacy/chat/index.php`, so the
+  frozen, PHP-servable chat surface — `chat.php` — was copied verbatim to
+  `legacy/chat/index.php`. The module is intentionally minimal because the chat
+  is currently disabled in production (the page itself says so).
+- **Deliberately EXCLUDED from `legacy/chat/`:**
+  - `chat-server/serviceAccountKey.json` — a live Firebase **service-account
+    credential**; committing it would be a secret leak. Never vendored.
+  - `chat-server/server.js` — a Node realtime server that cannot run on the
+    shared-hosting PHP-FPM target (the engineering constraints forbid Docker /
+    queue workers / long-running Node processes), so it is dead weight in a PHP
+    deploy and was left out.
+  - `chat_uploads/` — runtime user content, not source code; it does not belong
+    in the repository and is recreated at runtime.
+  These exclusions keep the drop-in faithful to what is actually servable on the
+  target host while avoiding a credential leak.
+- **Modules are frozen.** Not a single byte of the copied Store/Chat files was
+  edited — they run against the new stack solely through `LegacyBridge`, which
+  exposes the same mysqli `$conn` the new `Database` layer manages. DB untouched;
+  100% backward compatible.
+
+### Validation Performed
+- Byte-for-byte fidelity: each copied file's byte length equals the size GitHub
+  reports for its legacy source (9070 / 5417 / 13048 / 2865 / 2881 / 3020).
+- `php -l` (PHP 8.4.21): `legacy/store/index.php` and `legacy/chat/index.php`
+  both report no syntax errors.
+- Bridge contract: the resulting tree provides exactly `legacy/store/index.php`
+  and `legacy/chat/index.php`, the two entry points `public/index.php`'s
+  `LegacyBridge` block requires (`/store*` and `/chat*` now resolve to real
+  files instead of the prior safe no-op).
+
+### Project Status — COMPLETE
+Phase 3 (Tasks A–K) is finished. The faragoman-v2 migration is feature-complete
+on the new Laravel-inspired architecture (DI container, router + middleware,
+service/repository layers, view engine), with the legacy Store & Chat modules
+mounted under `/legacy`. The single remaining backlog item is a full end-to-end
+run against a copy of the production database, which needs a staging environment
+(the sandbox has no MySQL; everything here was validated structurally and via
+render/unit smoke tests).

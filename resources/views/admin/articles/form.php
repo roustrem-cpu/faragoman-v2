@@ -24,7 +24,7 @@ $postTag  = (string) ($old['post_tag']    ?? ($article->postTag  ?? ''));
 $status   = (string) ($old['status']      ?? ($article->status   ?? 'published'));
 ?>
 <section class="admin-section admin-formwrap">
-    <form class="card form admin-form" method="post" action="<?= e($formAction) ?>">
+    <form class="card form admin-form" method="post" action="<?= e($formAction) ?>" enctype="multipart/form-data">
         <?= csrf_field() ?>
 
         <div class="field">
@@ -67,9 +67,17 @@ $status   = (string) ($old['status']      ?? ($article->status   ?? 'published')
 
         <div class="admin-form__row">
             <div class="field">
-                <label class="field__label" for="image_url">نشانی تصویر شاخص</label>
-                <input class="field__input" id="image_url" name="image_url" value="<?= e($imageUrl) ?>" placeholder="uploads/articles/…">
-                <span class="field__hint">آپلود تصویر در گام بعدی (Task H) اضافه می‌شود.</span>
+                <label class="field__label" for="image_file">تصویر شاخص</label>
+                <?php if ($imageUrl !== ''): ?>
+                    <div class="admin-form__preview">
+                        <img src="/<?= e(ltrim($imageUrl, '/')) ?>" alt="" loading="lazy">
+                        <span class="field__hint">تصویر فعلی — برای جایگزینی، فایل تازه‌ای انتخاب کنید.</span>
+                    </div>
+                <?php endif; ?>
+                <input class="field__input" id="image_file" name="image_file" type="file" accept="image/jpeg,image/png,image/webp">
+                <input type="hidden" name="image_url" value="<?= e($imageUrl) ?>">
+                <span class="field__hint">قالب‌های مجاز: JPEG، PNG، WEBP — حداکثر ۵ مگابایت. (اختیاری)</span>
+                <?php if (!empty($errors['image_file'])): ?><span class="field__error"><?= e($errors['image_file']) ?></span><?php endif; ?>
             </div>
             <div class="field">
                 <label class="field__label" for="post_tag">برچسب‌ها</label>

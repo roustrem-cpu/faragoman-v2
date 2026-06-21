@@ -10,14 +10,22 @@ use App\Core\View;
 use App\Models\Article;
 use App\Services\ArticleService;
 use App\Services\AuthService;
+use App\Services\ImageUploadService;
+use RuntimeException;
 
 /**
- * Admin — Article Management (Task D).
+ * Admin — Article Management (Task D; image uploads added in Task J).
  *
  * CRUD + publish/unpublish over the existing `articles` table. Access is gated
  * upstream by [AuthMiddleware, gate.admin]; write routes additionally pass
  * through CsrfMiddleware. All data flows through ArticleService → repository,
  * which mirrors the legacy columns for full DB backward compatibility.
+ *
+ * Task J: the "image_url" field is now a real file upload (`image_file`). The
+ * uploaded file is validated + stored by ImageUploadService and the resulting
+ * web-relative path is written into the SAME `image_url` column — no schema
+ * change. The upload is optional: leaving the field empty keeps the article's
+ * existing image on edit (and means "no image" on create).
  */
 final class AdminArticleController extends Controller
 {
@@ -28,6 +36,7 @@ final class AdminArticleController extends Controller
         View $view,
         private ArticleService $articles,
         private AuthService $auth,
+        private ImageUploadService $uploads,
     ) {
         parent::__construct($view);
     }
@@ -57,6 +66,9 @@ final class AdminArticleController extends Controller
     {
         $data   = $this->collect($request);
         $errors = $this->validate($data);
+
+        // Optional image upload (Task J). On create there is no prior value.
+        $this->applyUpload($request, $data, $errors, '');
 
         if ($errors !== []) {
             return $this->form(null, $data, $errors, 422);
@@ -90,6 +102,9 @@ final class AdminArticleController extends Controller
         $data   = $this->collect($request);
         $errors = $this->validate($data);
 
+        // Keep the current image unless a new file is uploaded (Task J).
+        $this->applyUpload($request, $data, $errors, (string) ($article->imageUrl ?? ''));
+
         if ($errors !== []) {
             return $this->form($article, $data, $errors, 422);
         }
@@ -121,6 +136,30 @@ final class AdminArticleController extends Controller
     }
 
     // ------------------------------------------------------------------ //
+
+    /**
+     * Resolve the image_url for this request: a freshly uploaded file wins,
+     * otherwise the supplied fallback (existing value / empty) is preserved.
+     * A validation failure is recorded under the `image_file` error key.
+     *
+     * @param array<string, mixed>  $data
+     * @param array<string, string> $errors
+     */
+    private function applyUpload(Request $request, array &$data, array &$errors, string $fallback): void
+    {
+        $data['image_url'] = $fallback;
+
+        $file = $request->file('image_file');
+        if (!$this->uploads->hasUpload($file)) {
+            return;
+        }
+
+        try {
+            $data['image_url'] = $this->uploads->store($file, 'articles');
+        } catch (RuntimeException $e) {
+            $errors['image_file'] = $e->getMessage();
+        }
+    }
 
     private function form(?Article $article, array $old = [], array $errors = [], int $status = 200): Response
     {
